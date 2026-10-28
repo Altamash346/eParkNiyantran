@@ -477,14 +477,14 @@ body.theme-light header .bg-slate-800\/40 {
 /* Cards & Glass Panels in Light Mode */
 body.theme-light .glass-panel {
   background: #ffffff !important;
-  border: 1.5px solid #fed7aa !important; /* Warm orange border */
-  box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
+  border: 1.5px solid #e2e8f0 !important; /* Clean slate border */
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
 body.theme-light .glass-panel-accent {
-  background: linear-gradient(145deg, #fff7ed 0%, #ffffff 100%) !important;
-  border: 2px solid #fdba74 !important; /* Vibrant orange accent border */
-  box-shadow: 0 10px 30px -4px rgba(249, 115, 22, 0.12), 0 4px 10px -2px rgba(16, 185, 129, 0.05) !important;
+  background: #ffffff !important;
+  border: 1.5px solid #fed7aa !important; /* Subtle saffron border */
+  box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.1), 0 2px 6px -1px rgba(0, 0, 0, 0.04) !important;
 }
 
 /* KPI Summary Cards Specific Accents */
@@ -504,57 +504,164 @@ body.theme-light #metricAgencyShare {
   color: #d97706 !important; /* Warm Amber */
 }
 body.theme-light #metricPendingAmount {
-  color: #e11d48 !important; /* Coral Red */
+  color: #dc2626 !important; /* Crisp Crimson Red */
 }
 
-/* Typography in Light Mode */
+/* Typography & Humanized Text Colors in Light Mode */
+body.theme-light h1,
+body.theme-light h2,
+body.theme-light h3,
+body.theme-light h4,
 body.theme-light .text-white {
-  color: #1c1917 !important;
+  color: #0f172a !important; /* Deep charcoal slate */
 }
 body.theme-light .text-slate-100,
 body.theme-light .text-slate-200 {
-  color: #292524 !important;
+  color: #1e293b !important;
 }
+body.theme-light label,
 body.theme-light .text-slate-300 {
-  color: #44403c !important;
+  color: #334155 !important; /* Dark readable slate */
 }
 body.theme-light .text-slate-400 {
-  color: #78716c !important;
+  color: #64748b !important; /* Medium slate */
 }
 body.theme-light .text-slate-500 {
-  color: #a8a29e !important;
-}
-body.theme-light .text-blue-400,
-body.theme-light .text-blue-300 {
-  color: #ea580c !important; /* Switch blue text to energetic orange in light mode */
-}
-body.theme-light .text-emerald-400,
-body.theme-light .text-emerald-300 {
-  color: #059669 !important; /* Rich Green */
-}
-body.theme-light .text-amber-400,
-body.theme-light .text-amber-300 {
-  color: #d97706 !important; /* Warm Gold */
+  color: #94a3b8 !important;
 }
 
-/* Sub-Cards, Inner Sections & Panels */
+/* High-Contrast Alert Boxes (Fix for Washed-Out Pink Banned Box) */
+body.theme-light #banAlertBox {
+  background-color: #fef2f2 !important; /* Crisp pale red */
+  border: 1.5px solid #f87171 !important; /* Vivid coral red border */
+  color: #991b1b !important; /* Deep dark crimson text */
+  box-shadow: 0 4px 12px -2px rgba(239, 68, 68, 0.15) !important;
+}
+body.theme-light #banAlertBox div,
+body.theme-light #banAlertBox span,
+body.theme-light #banAlertBox strong {
+  color: #7f1d1d !important; /* Extra dark red for maximum readability */
+  font-weight: 700 !important;
+}
+body.theme-light #banAlertBox svg,
+body.theme-light #banAlertBox i {
+  color: #dc2626 !important;
+}
+
+body.theme-light #vahanNotFoundAlertBox {
+  background-color: #fff1f2 !important;
+  border: 1.5px solid #fb7185 !important;
+  color: #9f1239 !important;
+  box-shadow: 0 4px 12px -2px rgba(244, 63, 94, 0.15) !important;
+}
+body.theme-light #vahanNotFoundAlertBox div,
+body.theme-light #vahanNotFoundAlertBox span,
+body.theme-light #vahanNotFoundAlertBox p {
+  color: #881337 !important;
+}
+body.theme-light #vahanNotFoundAlertBox svg,
+body.theme-light #vahanNotFoundAlertBox i {
+  color: #e11d48 !important;
+}
+
+body.theme-light #vahanStatusBanner {
+  background-color: #f0fdf4 !important;
+  border: 1.5px solid #86efac !important;
+  color: #166534 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1) !important;
+}
+body.theme-light #vahanStatusBanner span,
+body.theme-light #vahanStatusBanner strong {
+  color: #14532d !important;
+}
+body.theme-light #vahanStatusBanner svg,
+body.theme-light #vahanStatusBanner i {
+  color: #16a34a !important;
+}
+
+/* Red / Danger Elements in Light Mode */
+body.theme-light .text-rose-400,
+body.theme-light .text-rose-300,
+body.theme-light .text-rose-200,
+body.theme-light .text-rose-500 {
+  color: #dc2626 !important;
+}
+body.theme-light .bg-rose-500\/15,
+body.theme-light .bg-rose-500\/20,
+body.theme-light .bg-rose-600\/15,
+body.theme-light .bg-rose-900\/40,
+body.theme-light .bg-rose-950\/60 {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+
+/* Amber / Warning Elements in Light Mode */
+body.theme-light .text-amber-400,
+body.theme-light .text-amber-300,
+body.theme-light .text-amber-500 {
+  color: #b45309 !important; /* Dark golden amber */
+}
+body.theme-light .bg-amber-500\/10,
+body.theme-light .bg-amber-500\/15,
+body.theme-light .bg-amber-500\/20,
+body.theme-light .bg-amber-500\/25,
+body.theme-light .bg-amber-500\/30 {
+  background-color: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #92400e !important;
+}
+
+/* Emerald / Green Success Elements in Light Mode */
+body.theme-light .text-emerald-400,
+body.theme-light .text-emerald-300,
+body.theme-light .text-emerald-500 {
+  color: #047857 !important; /* Rich forest green */
+}
+body.theme-light .bg-emerald-500\/10,
+body.theme-light .bg-emerald-500\/15,
+body.theme-light .bg-emerald-500\/20,
+body.theme-light .bg-emerald-500\/25,
+body.theme-light .bg-emerald-500\/30 {
+  background-color: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+}
+
+/* Blue / Orange Saffron Accents in Light Mode */
+body.theme-light .text-blue-400,
+body.theme-light .text-blue-300,
+body.theme-light .text-blue-500 {
+  color: #ea580c !important; /* Saffron orange */
+}
+body.theme-light .bg-blue-500\/10,
+body.theme-light .bg-blue-500\/15,
+body.theme-light .bg-blue-500\/20,
+body.theme-light .bg-blue-500\/25,
+body.theme-light .bg-blue-500\/30 {
+  background-color: #fff7ed !important;
+  border-color: #fdba74 !important;
+  color: #c2410c !important;
+}
+
+/* Sub-Cards, Inner Sections & Panels in Light Mode */
 body.theme-light .bg-slate-900,
 body.theme-light .bg-slate-950,
 body.theme-light .bg-slate-900\/90,
 body.theme-light .bg-slate-950\/90,
 body.theme-light .bg-slate-900\/80 {
-  background-color: #fffaf5 !important; /* Clean ivory cream */
-  border-color: #fed7aa !important;
+  background-color: #f8fafc !important; /* Soft, clean neutral canvas */
+  border-color: #e2e8f0 !important;
 }
 
 body.theme-light .bg-slate-800,
 body.theme-light .bg-slate-800\/80 {
   background-color: #ffffff !important;
-  border: 1px solid #fed7aa !important;
-  color: #431407 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
 }
 body.theme-light .bg-slate-800:hover {
-  background-color: #ffedd5 !important;
+  background-color: #fff7ed !important;
   border-color: #f97316 !important;
 }
 
@@ -563,19 +670,22 @@ body.theme-light .border-slate-700,
 body.theme-light .border-slate-800\/80,
 body.theme-light .border-slate-800\/60,
 body.theme-light .border-slate-800\/50 {
-  border-color: #fed7aa !important;
+  border-color: #e2e8f0 !important;
 }
 
-/* Preset Buttons (Orange & White) */
+/* Preset Buttons (Humanized, Clean Cards) */
 body.theme-light .preset-btn {
   background-color: #ffffff !important;
-  border: 1.5px solid #fed7aa !important;
-  color: #c2410c !important;
-  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.08) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  color: #334155 !important;
+  border-radius: 9px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  font-weight: 600 !important;
 }
 body.theme-light .preset-btn:hover {
   background-color: #fff7ed !important;
-  border-color: #f97316 !important;
+  border-color: #ea580c !important;
+  color: #c2410c !important;
   transform: translateY(-1px);
 }
 
@@ -584,19 +694,61 @@ body.theme-light input,
 body.theme-light select,
 body.theme-light textarea {
   background-color: #ffffff !important;
-  color: #1c1917 !important;
-  border: 1.5px solid #fed7aa !important;
-  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.04) !important;
+  color: #0f172a !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
 }
 body.theme-light input:focus,
 body.theme-light select:focus,
 body.theme-light textarea:focus {
-  border-color: #f97316 !important;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.22) !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18) !important;
+  outline: none !important;
 }
 body.theme-light input::placeholder,
 body.theme-light textarea::placeholder {
-  color: #a8a29e !important;
+  color: #94a3b8 !important;
+}
+body.theme-light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  padding: 8px 12px !important;
+}
+
+/* Duration Preset Buttons (+15m, +1hr, +2hr) in Light Mode */
+body.theme-light .btn-duration-preset {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+body.theme-light .btn-duration-preset:hover {
+  background-color: #fff7ed !important;
+  border-color: #f97316 !important;
+  color: #ea580c !important;
+}
+
+/* Bill Preview Amounts */
+body.theme-light #previewDurationText,
+body.theme-light #billDuration,
+body.theme-light #billSlot {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+body.theme-light #previewTotalBill {
+  color: #047857 !important;
+  font-weight: 800 !important;
+}
+body.theme-light #previewAgencyShare {
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+body.theme-light #previewFacilityShare {
+  color: #047857 !important;
+  font-weight: 700 !important;
 }
 
 /* Tables (Warm Orange & Mint Accents) */

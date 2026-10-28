@@ -350,7 +350,8 @@ function updateEntryBillPreview() {
   }
 
   // Pending fine check from current RTO display
-  const hasFine = document.getElementById('rtoFineStatus')?.textContent?.includes('₹500') || false;
+  const fineText = document.getElementById('rtoFineStatus')?.textContent || '';
+  const hasFine = fineText.includes('₹') && !fineText.includes('None') && !fineText.includes('₹0');
   const total = basicCharge + (hasFine ? 50 : 0);
   const agencyShare = Math.round(total * 0.1);
   const facilityShare = total - agencyShare;
@@ -589,11 +590,11 @@ async function verifyRtoPlate(plate) {
       // Fine Status
       const fineEl = document.getElementById('rtoFineStatus');
       if (v.hasPendingFine) {
-        fineEl.textContent = `Pending Fine: ₹${v.pendingFineAmount || 500}`;
-        fineEl.className = 'text-amber-400 font-bold';
+        fineEl.textContent = `₹${v.pendingFineAmount || 500} (Violations)`;
+        fineEl.className = 'text-amber-500 font-bold';
       } else {
         fineEl.textContent = 'None (₹0)';
-        fineEl.className = 'text-emerald-400 font-medium';
+        fineEl.className = 'text-emerald-500 font-medium';
       }
 
       // Ban Alert Box
