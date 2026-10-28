@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="favOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7e1d" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+    <linearGradient id="favGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#0f172a" stroke="#ea580c" stroke-width="2"/>
+  <!-- P Stem -->
+  <line x1="20" y1="14" x2="20" y2="50" stroke="url(#favOrange)" stroke-width="7" stroke-linecap="round"/>
+  <!-- P Loop -->
+  <path d="M 20 14 L 35 14 C 46 14, 46 34, 35 34 L 20 34" fill="none" stroke="url(#favOrange)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Inner Green Arc -->
+  <path d="M 23 20 L 33 20 C 40 20, 40 28, 33 28 L 23 28" fill="none" stroke="url(#favGreen)" stroke-width="3" stroke-linecap="round"/>
+  <!-- Node Dot -->
+  <circle cx="20" cy="50" r="4.5" fill="url(#favGreen)" stroke="#ffffff" stroke-width="1.5"/>
+</svg>

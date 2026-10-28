@@ -1,0 +1,23 @@
+{
+  "name": "eparkniyantran",
+  "version": "1.1.0",
+  "description": "eParkNiyantran - Smart Parking Management System with In/Out Timing, Instant Bill Generation at Entry, Indian HSRP Plate OCR, mParivahan verification, DLT SMS, 10% agency revenue share, dynamic tariff engine, 10-day ban rules, and 11:59 PM clearance sweep.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "eparkniyantran",
+    "smart-parking",
+    "alpr",
+    "ocr",
+    "mparivahan",
+    "fastapi",
+    "nodejs",
+    "razorpay",
+    "dlt-sms"
+  ],
+  "author": "Antigravity Pair Programmer",
+  "license": "MIT"
+}

@@ -1,0 +1,668 @@
+/* ========================================================
+   eParkNiyantran - Humanized Modern Styling & Design System
+   Font: Plus Jakarta Sans (UI) & JetBrains Mono (Numbers/Plates)
+   ======================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Primary Brand - Indian Urban Mobility Blue */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+
+  /* Accents */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --indigo: #6366f1;
+
+  /* Dark Theme Palette */
+  --bg-dark-base: #0b0f19;
+  --bg-dark-card: #141c2e;
+  --bg-dark-card-hover: #1a253c;
+  --border-dark: rgba(255, 255, 255, 0.08);
+
+  /* Light Theme Palette */
+  --bg-light-base: #f8fafc;
+  --bg-light-card: #ffffff;
+  --border-light: #e2e8f0;
+}
+
+/* Base Reset & Typography */
+html {
+  font-family: var(--font-sans);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-dark-base);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.07) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #f1f5f9;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono {
+  font-family: var(--font-mono) !important;
+}
+
+/* Smooth Interactive Elements */
+button, select, input, textarea, a {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Humanized Modern Glass Panels */
+.glass-panel {
+  background: rgba(20, 28, 46, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25), 0 2px 6px -1px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+}
+
+.glass-panel-accent {
+  background: linear-gradient(145deg, rgba(37, 99, 235, 0.12) 0%, rgba(20, 28, 46, 0.85) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  box-shadow: 0 8px 25px -4px rgba(37, 99, 235, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.2);
+  border-radius: 18px;
+}
+
+/* Camera Live Viewfinder Simulation for ANPR Gate */
+.anpr-viewfinder {
+  position: relative;
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.95) 0%, rgba(9, 14, 26, 1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.anpr-viewfinder::before,
+.anpr-viewfinder::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #3b82f6;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.anpr-viewfinder::before {
+  top: 8px;
+  left: 8px;
+  border-top: 2.5px solid #3b82f6;
+  border-left: 2.5px solid #3b82f6;
+}
+
+.anpr-viewfinder::after {
+  bottom: 8px;
+  right: 8px;
+  border-bottom: 2.5px solid #3b82f6;
+  border-right: 2.5px solid #3b82f6;
+}
+
+/* Authentic Indian Number Plate (High Security Registration Plate - HSRP) */
+.indian-hsrp-plate {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  border: 3.5px solid #111827;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 
+    0 8px 16px -2px rgba(0, 0, 0, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 1),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  user-select: none;
+  position: relative;
+}
+
+.indian-hsrp-plate .blue-strip {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  color: #ffffff;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  border-right: 2px solid #0f172a;
+  min-height: 52px;
+}
+
+.indian-hsrp-plate .blue-strip .chakra {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px dashed #fbbf24;
+  margin-bottom: 3px;
+  box-shadow: 0 0 4px rgba(251, 191, 36, 0.5);
+}
+
+.indian-hsrp-plate .plate-number-text {
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 900;
+  padding: 4px 18px;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Parking Slot Visual Grid */
+.parking-slot-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.parking-slot-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.4);
+}
+
+.slot-vacant {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+}
+.slot-vacant:hover {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.slot-occupied {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+}
+.slot-occupied:hover {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.slot-reminder {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1.5px solid rgba(245, 158, 11, 0.55);
+  animation: pulse-border 1.5s infinite;
+}
+
+.slot-pending {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1.5px solid rgba(139, 92, 246, 0.55);
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(245, 158, 11, 0.85); box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+  50% { border-color: rgba(245, 158, 11, 0.3); box-shadow: none; }
+}
+
+/* Interactive Star Rating Widget */
+.star-rating-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.star-rating-btn:hover {
+  transform: scale(1.25);
+}
+
+/* Simulated Smartphone View */
+.phone-mockup {
+  width: 320px;
+  height: 580px;
+  background: #0f172a;
+  border: 10px solid #1e293b;
+  border-radius: 38px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.phone-notch {
+  width: 130px;
+  height: 18px;
+  background: #1e293b;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  margin: 0 auto;
+}
+
+.phone-screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+}
+
+.sms-bubble {
+  background: #1e293b;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 16px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Smooth Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Navigation Tab Active Pill */
+.tab-btn {
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+
+.tab-btn:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
+  box-shadow: 0 4px 12px -1px rgba(37, 99, 235, 0.4) !important;
+}
+
+/* Humanized Thermal Bill / Receipt */
+.printable-bill {
+  position: relative;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+}
+
+/* ========================================================
+   LIGHT MODE DESIGN SYSTEM: VIBRANT ORANGE, GREEN & CRISP WHITE
+   Eliminates all dull grays with high-energy warm tones
+   ======================================================== */
+body.theme-light {
+  background-color: #fffdfa !important; /* Warm ivory porcelain base */
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(249, 115, 22, 0.09) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(249, 115, 22, 0.04) 0px, transparent 50%) !important;
+  color: #1c1917 !important; /* Deep warm espresso charcoal */
+}
+
+/* Header & Navigation in Light Mode */
+body.theme-light header {
+  background-color: #ffffff !important;
+  border-bottom: 2px solid #fed7aa !important; /* Warm peach-orange border */
+  box-shadow: 0 4px 20px -3px rgba(249, 115, 22, 0.08) !important;
+  position: relative;
+}
+
+body.theme-light header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg, #f97316 0%, #fb923c 50%, #10b981 100%);
+  z-index: 50;
+}
+
+body.theme-light header .bg-slate-900\/40,
+body.theme-light header .bg-slate-900\/60 {
+  background-color: #fffaf5 !important;
+  border-color: #ffedd5 !important;
+}
+
+body.theme-light header .bg-slate-800,
+body.theme-light header .bg-slate-800\/80,
+body.theme-light header .bg-slate-800\/60,
+body.theme-light header .bg-slate-800\/40 {
+  background-color: #ffffff !important;
+  border: 1.5px solid #fed7aa !important;
+  color: #1c1917 !important;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.08) !important;
+}
+
+/* Cards & Glass Panels in Light Mode */
+body.theme-light .glass-panel {
+  background: #ffffff !important;
+  border: 1.5px solid #fed7aa !important; /* Warm orange border */
+  box-shadow: 0 8px 24px -4px rgba(249, 115, 22, 0.07), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.theme-light .glass-panel-accent {
+  background: linear-gradient(145deg, #fff7ed 0%, #ffffff 100%) !important;
+  border: 2px solid #fdba74 !important; /* Vibrant orange accent border */
+  box-shadow: 0 10px 30px -4px rgba(249, 115, 22, 0.12), 0 4px 10px -2px rgba(16, 185, 129, 0.05) !important;
+}
+
+/* KPI Summary Cards Specific Accents */
+body.theme-light #metricTotalBays {
+  color: #ea580c !important; /* Saffron Orange */
+}
+body.theme-light #metricVacantBays {
+  color: #059669 !important; /* Emerald Green */
+}
+body.theme-light #metricOccupiedBays {
+  color: #ea580c !important; /* Orange */
+}
+body.theme-light #metricRevenue {
+  color: #059669 !important; /* Fresh Green */
+}
+body.theme-light #metricAgencyShare {
+  color: #d97706 !important; /* Warm Amber */
+}
+body.theme-light #metricPendingAmount {
+  color: #e11d48 !important; /* Coral Red */
+}
+
+/* Typography in Light Mode */
+body.theme-light .text-white {
+  color: #1c1917 !important;
+}
+body.theme-light .text-slate-100,
+body.theme-light .text-slate-200 {
+  color: #292524 !important;
+}
+body.theme-light .text-slate-300 {
+  color: #44403c !important;
+}
+body.theme-light .text-slate-400 {
+  color: #78716c !important;
+}
+body.theme-light .text-slate-500 {
+  color: #a8a29e !important;
+}
+body.theme-light .text-blue-400,
+body.theme-light .text-blue-300 {
+  color: #ea580c !important; /* Switch blue text to energetic orange in light mode */
+}
+body.theme-light .text-emerald-400,
+body.theme-light .text-emerald-300 {
+  color: #059669 !important; /* Rich Green */
+}
+body.theme-light .text-amber-400,
+body.theme-light .text-amber-300 {
+  color: #d97706 !important; /* Warm Gold */
+}
+
+/* Sub-Cards, Inner Sections & Panels */
+body.theme-light .bg-slate-900,
+body.theme-light .bg-slate-950,
+body.theme-light .bg-slate-900\/90,
+body.theme-light .bg-slate-950\/90,
+body.theme-light .bg-slate-900\/80 {
+  background-color: #fffaf5 !important; /* Clean ivory cream */
+  border-color: #fed7aa !important;
+}
+
+body.theme-light .bg-slate-800,
+body.theme-light .bg-slate-800\/80 {
+  background-color: #ffffff !important;
+  border: 1px solid #fed7aa !important;
+  color: #431407 !important;
+}
+body.theme-light .bg-slate-800:hover {
+  background-color: #ffedd5 !important;
+  border-color: #f97316 !important;
+}
+
+body.theme-light .border-slate-800,
+body.theme-light .border-slate-700,
+body.theme-light .border-slate-800\/80,
+body.theme-light .border-slate-800\/60,
+body.theme-light .border-slate-800\/50 {
+  border-color: #fed7aa !important;
+}
+
+/* Preset Buttons (Orange & White) */
+body.theme-light .preset-btn {
+  background-color: #ffffff !important;
+  border: 1.5px solid #fed7aa !important;
+  color: #c2410c !important;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.08) !important;
+}
+body.theme-light .preset-btn:hover {
+  background-color: #fff7ed !important;
+  border-color: #f97316 !important;
+  transform: translateY(-1px);
+}
+
+/* Form Controls (Inputs, Dropdowns, Textareas) */
+body.theme-light input,
+body.theme-light select,
+body.theme-light textarea {
+  background-color: #ffffff !important;
+  color: #1c1917 !important;
+  border: 1.5px solid #fed7aa !important;
+  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.04) !important;
+}
+body.theme-light input:focus,
+body.theme-light select:focus,
+body.theme-light textarea:focus {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.22) !important;
+}
+body.theme-light input::placeholder,
+body.theme-light textarea::placeholder {
+  color: #a8a29e !important;
+}
+
+/* Tables (Warm Orange & Mint Accents) */
+body.theme-light thead.bg-slate-900 {
+  background: linear-gradient(90deg, #fff7ed 0%, #f0fdf4 100%) !important;
+  border-bottom: 2px solid #fed7aa !important;
+}
+body.theme-light thead th {
+  color: #9a3412 !important;
+  font-weight: 700 !important;
+}
+body.theme-light tbody tr {
+  background-color: #ffffff !important;
+  border-color: #ffedd5 !important;
+}
+body.theme-light tbody tr:hover {
+  background-color: #fff7ed !important;
+}
+body.theme-light .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #ffedd5 !important;
+}
+
+/* Tabs in Light Mode (Orange & Emerald Pills) */
+body.theme-light .tab-btn:not(.active) {
+  color: #7c2d12 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #fed7aa !important;
+  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.06) !important;
+}
+body.theme-light .tab-btn:not(.active):hover {
+  background-color: #fff7ed !important;
+  border-color: #f97316 !important;
+  color: #ea580c !important;
+}
+body.theme-light .tab-btn.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  border-color: #c2410c !important;
+  box-shadow: 0 4px 14px -1px rgba(249, 115, 22, 0.45) !important;
+}
+
+/* Primary Action Buttons */
+body.theme-light #btnConfirmEntry {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 6px 18px -2px rgba(16, 185, 129, 0.35) !important;
+}
+body.theme-light #btnConfirmEntry:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 8px 22px -2px rgba(16, 185, 129, 0.45) !important;
+}
+
+body.theme-light #btnVerifyPlate {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px -1px rgba(249, 115, 22, 0.35) !important;
+}
+
+/* Parking Bay Slots in Light Mode (Vibrant Green & Warm Orange) */
+body.theme-light .slot-vacant {
+  background: #f0fdf4 !important;
+  border: 2px solid #10b981 !important;
+  color: #047857 !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1) !important;
+}
+body.theme-light .slot-vacant:hover {
+  background: #dcfce7 !important;
+  border-color: #059669 !important;
+  box-shadow: 0 8px 18px -2px rgba(16, 185, 129, 0.28) !important;
+}
+
+body.theme-light .slot-occupied {
+  background: #fff7ed !important;
+  border: 2px solid #f97316 !important;
+  color: #c2410c !important;
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.1) !important;
+}
+body.theme-light .slot-occupied:hover {
+  background: #ffedd5 !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 8px 18px -2px rgba(249, 115, 22, 0.28) !important;
+}
+
+/* ANPR Camera Viewfinder in Light Mode */
+body.theme-light .anpr-viewfinder {
+  background: #ffffff !important;
+  border: 2px solid #fdba74 !important;
+  box-shadow: 0 6px 18px -2px rgba(249, 115, 22, 0.1) !important;
+}
+body.theme-light .anpr-viewfinder::before,
+body.theme-light .anpr-viewfinder::after {
+  border-color: #f97316 !important;
+}
+
+/* Virtual Smartphone in Light Mode (White & Orange with Green SMS) */
+body.theme-light .phone-mockup {
+  background: #ffffff !important;
+  border: 10px solid #fdba74 !important;
+  box-shadow: 0 25px 50px -12px rgba(249, 115, 22, 0.18), 0 0 0 1px #fed7aa !important;
+}
+body.theme-light .phone-notch {
+  background: #fdba74 !important;
+}
+body.theme-light .phone-screen {
+  background: #fffdfa !important;
+}
+body.theme-light .sms-bubble {
+  background: #ffffff !important;
+  border: 1.5px solid #10b981 !important;
+  color: #14532d !important;
+  box-shadow: 0 4px 10px -2px rgba(16, 185, 129, 0.12) !important;
+}
+
+/* Modals in Light Mode */
+body.theme-light #entryBillModal > div,
+body.theme-light #paymentModal > div,
+body.theme-light #receiptModal > div,
+body.theme-light #complaintModal > div {
+  background-color: #ffffff !important;
+  border: 2px solid #fed7aa !important;
+  color: #1c1917 !important;
+  box-shadow: 0 25px 60px -15px rgba(249, 115, 22, 0.22) !important;
+}
+
+body.theme-light .printable-bill {
+  background-color: #ffffff !important;
+  border: 2px dashed #f97316 !important;
+  color: #1c1917 !important;
+  box-shadow: 0 10px 25px -4px rgba(249, 115, 22, 0.12) !important;
+}
+
+/* Footer in Light Mode */
+body.theme-light footer {
+  background-color: #ffffff !important;
+  border-top: 2px solid #fed7aa !important;
+  color: #78716c !important;
+}
+
+/* Thermal Bill Print Styling */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #entryBillModal, #entryBillModal * {
+    visibility: visible;
+  }
+  #entryBillModal {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .printable-bill {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px dashed #000000 !important;
+    box-shadow: none !important;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .printable-bill * {
+    color: #000000 !important;
+    text-shadow: none !important;
+  }
+}
