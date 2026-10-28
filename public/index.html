@@ -290,43 +290,6 @@
   <!-- MAIN TAB CONTENT AREA -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full">
 
-    <!-- Active Section Banner & Quick Shortcut Pills -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-orange-500/15">
-      <div class="flex items-center space-x-3">
-        <button id="quickOpenMenuBtn" title="Open Full Menu (10 Features)" class="p-2 sm:hidden rounded-xl bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 flex items-center gap-1.5 text-xs font-bold transition">
-          <i data-lucide="menu" class="w-4 h-4"></i>
-          <span>Menu</span>
-        </button>
-        <div>
-          <h2 id="mainPageTitle" class="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Gate Operations</span>
-            <span id="mainPagePill" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">Terminal</span>
-          </h2>
-          <p id="mainPageSubtitle" class="text-xs text-slate-500 dark:text-slate-400">Vehicle Check-In, In/Out Scheduling &amp; Instant Billing</p>
-        </div>
-      </div>
-
-      <!-- 3 Quick Action Shortcuts + 3-line / All Features Drawer Button -->
-      <div class="flex items-center space-x-1.5 p-1 bg-white/90 dark:bg-slate-900/90 border border-orange-500/20 dark:border-slate-800 rounded-xl shadow-sm overflow-x-auto">
-        <button data-tab="tab-attendant" class="quick-nav-pill active px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
-          <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-          <span>Terminal</span>
-        </button>
-        <button data-tab="tab-slots" class="quick-nav-pill px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-1.5">
-          <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-          <span>Bay Map</span>
-        </button>
-        <button data-tab="tab-active-sessions" class="quick-nav-pill px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-1.5">
-          <i data-lucide="car" class="w-3.5 h-3.5"></i>
-          <span>Parked</span>
-        </button>
-        <button id="btnAllFeaturesMenu" type="button" title="View all 10 management modules" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-orange-500/15 text-orange-600 dark:text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 transition flex items-center gap-1.5 shadow-sm">
-          <i data-lucide="menu" class="w-3.5 h-3.5"></i>
-          <span>All Features (☰)</span>
-        </button>
-      </div>
-    </div>
-
     <!-- TAB 1: ATTENDANT TERMINAL (ENTRY & EXIT WORKFLOW) -->
     <div id="tab-attendant" class="tab-content block space-y-6">
       
