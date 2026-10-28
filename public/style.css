@@ -300,10 +300,120 @@ button:active {
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
   color: #ffffff !important;
-  border-color: rgba(96, 165, 250, 0.4) !important;
-  box-shadow: 0 4px 12px -1px rgba(37, 99, 235, 0.4) !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 4px 12px -1px rgba(249, 115, 22, 0.4) !important;
+}
+
+/* 3-Line Hamburger Navigation Drawer & Backdrop */
+#navDrawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#navDrawerOverlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#navDrawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 86vw;
+  background: #0f172a;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 10px 0 35px -5px rgba(0, 0, 0, 0.75);
+  z-index: 101;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+#navDrawer.open {
+  transform: translateX(0);
+}
+
+body.theme-light #navDrawer {
+  background: #ffffff !important;
+  border-right: 2px solid #fed7aa !important;
+  box-shadow: 10px 0 35px -5px rgba(249, 115, 22, 0.18) !important;
+}
+
+body.theme-light #navDrawerOverlay {
+  background: rgba(67, 20, 7, 0.4) !important;
+}
+
+/* Drawer Navigation Item */
+.drawer-nav-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  text-align: left;
+  gap: 12px;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  transition: all 0.15s ease-in-out;
+}
+
+.drawer-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.drawer-nav-btn.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px -1px rgba(249, 115, 22, 0.45) !important;
+}
+.drawer-nav-btn.active p {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+body.theme-light .drawer-nav-btn {
+  color: #44403c !important;
+}
+
+body.theme-light .drawer-nav-btn:hover {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  border-color: #fed7aa !important;
+}
+
+body.theme-light .drawer-nav-btn.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 4px 14px -1px rgba(249, 115, 22, 0.4) !important;
+}
+
+/* Quick Page Nav Pills */
+.quick-nav-pill {
+  border: 1px solid transparent;
+}
+.quick-nav-pill.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35) !important;
+}
+
+body.theme-light .quick-nav-pill.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35) !important;
 }
 
 /* Humanized Thermal Bill / Receipt */

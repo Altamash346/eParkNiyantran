@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initIcons();
   initClock();
   initThemeToggle();
+  initNavDrawer();
   initTabs();
   initPresetButtons();
   initEntryWorkflow();
@@ -68,43 +69,198 @@ function initClock() {
   setInterval(updateTime, 1000);
 
   // Operator select change
-  document.getElementById('operatorSelect').addEventListener('change', (e) => {
-    currentOperator = e.target.value;
-  });
+  const opSelect = document.getElementById('operatorSelect');
+  if (opSelect) {
+    opSelect.addEventListener('change', (e) => {
+      currentOperator = e.target.value;
+      const drawerOp = document.getElementById('drawerOperatorSelect');
+      if (drawerOp) drawerOp.value = e.target.value;
+    });
+  }
 }
+
+// Tab Metadata for Titles, Badges and Subtitles
+const TAB_METADATA = {
+  'tab-attendant': {
+    title: 'Gate Operations',
+    pill: 'Terminal',
+    subtitle: 'Vehicle Check-In, In/Out Scheduling & Instant Billing'
+  },
+  'tab-slots': {
+    title: 'Parking Bay Map',
+    pill: 'Live Map',
+    subtitle: '28 Live Sensor Bays, 2W/4W Status & EV Charging Grid'
+  },
+  'tab-active-sessions': {
+    title: 'Currently Parked Vehicles',
+    pill: 'Active Sessions',
+    subtitle: 'Live Occupancy, Elapsed Timers, Fast Check-Out & Entry Tickets'
+  },
+  'tab-tariffs': {
+    title: 'Tariff Rates & Slabs',
+    pill: 'Tariffs',
+    subtitle: 'Dynamic Demand Multipliers, Time Slabs & Penalty Configuration'
+  },
+  'tab-reports': {
+    title: 'Revenue & Accounts',
+    pill: 'Revenue Share',
+    subtitle: '10% Agency Split, Digital Audit Trails & Shift Settlements'
+  },
+  'tab-exceptions': {
+    title: 'Security & Enforcement',
+    pill: 'Bans & Dues',
+    subtitle: 'Banned Plates, Unsettled Overstays & Blacklisted Defaulters'
+  },
+  'tab-feedback': {
+    title: 'Citizen Grievances & Feedback',
+    pill: 'Grievance Desk',
+    subtitle: 'Review Citizen Complaints, Star Ratings & Officer Escalation'
+  },
+  'tab-sms': {
+    title: 'Citizen SMS Center',
+    pill: 'DLT Simulator',
+    subtitle: 'TRAI-compliant DLT SMS Dispatch & Citizen Mobile Preview'
+  },
+  'tab-iot': {
+    title: 'Gate Sensors & IoT Barrier',
+    pill: 'ESP32 Barrier',
+    subtitle: 'Ultrasonic Distance Hardware, ANPR Triggers & Gate Boom Control'
+  },
+  'tab-gateways': {
+    title: 'Gateways & Integrations',
+    pill: 'VAHAN & Razorpay',
+    subtitle: 'MoRTH VAHAN RTO Registry, NPCI FASTag & Payment Gateway API'
+  }
+};
+
+function openNavDrawer() {
+  const drawer = document.getElementById('navDrawer');
+  const overlay = document.getElementById('navDrawerOverlay');
+  if (drawer) drawer.classList.add('open');
+  if (overlay) overlay.classList.add('open');
+}
+
+function closeNavDrawer() {
+  const drawer = document.getElementById('navDrawer');
+  const overlay = document.getElementById('navDrawerOverlay');
+  if (drawer) drawer.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function initNavDrawer() {
+  const menuBtn = document.getElementById('menuToggleBtn');
+  const closeBtn = document.getElementById('closeNavDrawerBtn');
+  const overlay = document.getElementById('navDrawerOverlay');
+  const quickOpenBtn = document.getElementById('quickOpenMenuBtn');
+  const allFeaturesBtn = document.getElementById('btnAllFeaturesMenu');
+
+  if (menuBtn) menuBtn.addEventListener('click', openNavDrawer);
+  if (quickOpenBtn) quickOpenBtn.addEventListener('click', openNavDrawer);
+  if (allFeaturesBtn) allFeaturesBtn.addEventListener('click', openNavDrawer);
+  if (closeBtn) closeBtn.addEventListener('click', closeNavDrawer);
+  if (overlay) overlay.addEventListener('click', closeNavDrawer);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeNavDrawer();
+  });
+
+  const headerOpSelect = document.getElementById('operatorSelect');
+  const drawerOpSelect = document.getElementById('drawerOperatorSelect');
+  if (headerOpSelect && drawerOpSelect) {
+    drawerOpSelect.value = currentOperator;
+    drawerOpSelect.addEventListener('change', (e) => {
+      currentOperator = e.target.value;
+      headerOpSelect.value = e.target.value;
+    });
+  }
+
+  const drawerClearanceBtn = document.getElementById('drawerClearanceBtn');
+  if (drawerClearanceBtn) {
+    drawerClearanceBtn.addEventListener('click', () => {
+      closeNavDrawer();
+      const sweepBtn = document.getElementById('quickClearanceBtn');
+      if (sweepBtn) sweepBtn.click();
+    });
+  }
+}
+
+function switchTab(targetTabId) {
+  if (!targetTabId) return;
+
+  // 1. Show matching tab content, hide others
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.add('hidden');
+    content.classList.remove('block');
+  });
+  const activeContent = document.getElementById(targetTabId);
+  if (activeContent) {
+    activeContent.classList.remove('hidden');
+    activeContent.classList.add('block');
+  }
+
+  // 2. Update Drawer navigation buttons
+  document.querySelectorAll('.drawer-nav-btn').forEach(btn => {
+    if (btn.getAttribute('data-tab') === targetTabId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // 3. Update Quick nav shortcut pills
+  document.querySelectorAll('.quick-nav-pill').forEach(pill => {
+    if (pill.getAttribute('data-tab') === targetTabId) {
+      pill.classList.add('active');
+      pill.classList.remove('text-slate-600', 'dark:text-slate-400');
+    } else {
+      pill.classList.remove('active');
+      pill.classList.add('text-slate-600', 'dark:text-slate-400');
+    }
+  });
+
+  // 4. Update Header and Page Titles
+  const meta = TAB_METADATA[targetTabId];
+  if (meta) {
+    const headerTitle = document.getElementById('headerActiveTabTitle');
+    if (headerTitle) headerTitle.textContent = meta.title;
+
+    const pageTitle = document.getElementById('mainPageTitle');
+    if (pageTitle) {
+      pageTitle.innerHTML = `<span>${meta.title}</span><span id="mainPagePill" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">${meta.pill}</span>`;
+    }
+
+    const pageSubtitle = document.getElementById('mainPageSubtitle');
+    if (pageSubtitle) pageSubtitle.textContent = meta.subtitle;
+  }
+
+  // 5. Close drawer
+  closeNavDrawer();
+
+  // 6. Refresh Lucide icons
+  initIcons();
+
+  // 7. Refresh specific tab data on activation
+  if (targetTabId === 'tab-slots') loadSlots();
+  if (targetTabId === 'tab-active-sessions') loadActiveSessions();
+  if (targetTabId === 'tab-exceptions') loadExceptions();
+  if (targetTabId === 'tab-sms') loadNotifications();
+  if (targetTabId === 'tab-reports') loadReports();
+  if (targetTabId === 'tab-feedback') loadComplaints();
+  if (targetTabId === 'tab-gateways') loadGatewaySettings();
+}
+
+window.switchTab = switchTab;
+window.openNavDrawer = openNavDrawer;
+window.closeNavDrawer = closeNavDrawer;
 
 // Tab Switching
 function initTabs() {
-  const tabs = document.querySelectorAll('.tab-btn');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => {
-        t.classList.remove('active', 'bg-blue-600', 'text-white');
-        t.classList.add('text-slate-400');
-      });
-      tab.classList.add('active', 'bg-blue-600', 'text-white');
-      tab.classList.remove('text-slate-400');
-
-      const targetTabId = tab.getAttribute('data-tab');
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-      });
-      const activeContent = document.getElementById(targetTabId);
-      if (activeContent) {
-        activeContent.classList.remove('hidden');
-      }
-
-      initIcons();
-
-      // Refresh specific tab data on activation
-      if (targetTabId === 'tab-slots') loadSlots();
-      if (targetTabId === 'tab-active-sessions') loadActiveSessions();
-      if (targetTabId === 'tab-exceptions') loadExceptions();
-      if (targetTabId === 'tab-sms') loadNotifications();
-      if (targetTabId === 'tab-reports') loadReports();
-      if (targetTabId === 'tab-feedback') loadComplaints();
-      if (targetTabId === 'tab-gateways') loadGatewaySettings();
-    });
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-tab]');
+    if (trigger) {
+      const tabId = trigger.getAttribute('data-tab');
+      switchTab(tabId);
+    }
   });
 }
 
