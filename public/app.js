@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initIoTSimulator();
   initGatewaysTab();
   initDirectMessenger();
+  initPhonePersistence();
   initExportAction();
 
   // Load initial data
@@ -237,6 +238,11 @@ function switchTab(targetTabId) {
   // 5. Close drawer
   closeNavDrawer();
 
+  // Save active tab in localStorage so browser refresh preserves user location
+  try {
+    localStorage.setItem('epark_active_tab', targetTabId);
+  } catch (e) {}
+
   // 6. Refresh Lucide icons
   initIcons();
 
@@ -263,6 +269,14 @@ function initTabs() {
       switchTab(tabId);
     }
   });
+
+  // Restore previously active tab on reload so user doesn't get kicked back to tab 1
+  try {
+    const savedTab = localStorage.getItem('epark_active_tab');
+    if (savedTab && document.getElementById(savedTab)) {
+      switchTab(savedTab);
+    }
+  } catch (e) {}
 }
 
 // Format Plate
@@ -1499,9 +1513,59 @@ function initGatewaysTab() {
     }
   });
 
+  // Quick Save SMS Config Button (Right inside the SMS card)
+  const quickSaveSmsBtn = document.getElementById('btnQuickSaveSmsConfig');
+  if (quickSaveSmsBtn) {
+    quickSaveSmsBtn.addEventListener('click', async () => {
+      const feedback = document.getElementById('smsConfigSaveFeedback');
+      const provider = document.getElementById('cfgSmsProvider').value;
+      const apiKey = document.getElementById('cfgSmsApiKey').value.trim();
+      const senderId = document.getElementById('cfgSmsSenderId').value.trim();
+
+      // Persist draft in localStorage immediately
+      localStorage.setItem('epark_sms_provider', provider);
+      localStorage.setItem('epark_sms_apikey', apiKey);
+      localStorage.setItem('epark_sms_senderid', senderId);
+
+      try {
+        const res = await fetch('/api/gateways/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Operator-Id': currentOperator },
+          body: JSON.stringify({
+            sms: { provider, apiKey, senderId }
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (feedback) {
+            feedback.className = 'text-[11px] text-emerald-400 font-bold text-center mt-1 block';
+            feedback.textContent = `✅ Saved ${provider.toUpperCase()} credentials to database!`;
+            setTimeout(() => { feedback.className = 'hidden'; }, 4000);
+          }
+          loadGatewaySettings();
+        }
+      } catch (err) {
+        if (feedback) {
+          feedback.className = 'text-[11px] text-rose-400 font-bold text-center mt-1 block';
+          feedback.textContent = 'Failed to save settings to server';
+        }
+      }
+    });
+  }
+
+  // Auto-save draft gateway inputs on typing
+  ['cfgSmsProvider', 'cfgSmsApiKey', 'cfgSmsSenderId'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => localStorage.setItem(`epark_${id}`, el.value));
+      el.addEventListener('change', () => localStorage.setItem(`epark_${id}`, el.value));
+    }
+  });
+
   // Test SMS Dispatch Tool
   document.getElementById('btnTestSendSms').addEventListener('click', async () => {
     const phone = document.getElementById('testSmsPhoneInput').value.trim();
+    if (phone) localStorage.setItem('epark_user_phone', phone);
     const output = document.getElementById('smsTestOutputBox');
     output.classList.remove('hidden');
     output.innerHTML = '<span class="text-emerald-400">Dispatching test SMS...</span>';
@@ -1551,6 +1615,32 @@ function initGatewaysTab() {
   });
 }
 
+// Phone Number Persistence across tabs & refreshes
+function initPhonePersistence() {
+  const testInput = document.getElementById('testSmsPhoneInput');
+  const directInput = document.getElementById('directMsgPhone');
+  const custInput = document.getElementById('inputCustomerPhone');
+
+  const savedPhone = localStorage.getItem('epark_user_phone');
+  if (savedPhone) {
+    if (testInput) testInput.value = savedPhone;
+    if (directInput) directInput.value = savedPhone;
+    if (custInput) custInput.value = savedPhone;
+  }
+
+  const syncPhone = (val) => {
+    if (!val) return;
+    localStorage.setItem('epark_user_phone', val);
+    if (testInput && testInput.value !== val) testInput.value = val;
+    if (directInput && directInput.value !== val) directInput.value = val;
+    if (custInput && custInput.value !== val) custInput.value = val;
+  };
+
+  if (testInput) testInput.addEventListener('input', (e) => syncPhone(e.target.value.trim()));
+  if (directInput) directInput.addEventListener('input', (e) => syncPhone(e.target.value.trim()));
+  if (custInput) custInput.addEventListener('input', (e) => syncPhone(e.target.value.trim()));
+}
+
 async function loadGatewaySettings() {
   try {
     const res = await fetch('/api/gateways/settings');
@@ -1563,18 +1653,22 @@ async function loadGatewaySettings() {
     if (document.getElementById('cfgVahanClientId')) document.getElementById('cfgVahanClientId').value = s.vahan.clientId || '';
     if (document.getElementById('cfgVahanMode')) document.getElementById('cfgVahanMode').value = s.vahan.mode || 'auto';
 
-    if (document.getElementById('cfgSmsProvider')) document.getElementById('cfgSmsProvider').value = s.sms.provider || 'mock';
-    if (document.getElementById('cfgSmsApiKey')) document.getElementById('cfgSmsApiKey').value = s.sms.apiKey || '';
-    if (document.getElementById('cfgSmsSenderId')) document.getElementById('cfgSmsSenderId').value = s.sms.senderId || 'PARKNG';
+    const savedProv = localStorage.getItem('epark_cfgSmsProvider') || localStorage.getItem('epark_sms_provider');
+    const savedKey = localStorage.getItem('epark_cfgSmsApiKey') || localStorage.getItem('epark_sms_apikey');
+    const savedSender = localStorage.getItem('epark_cfgSmsSenderId') || localStorage.getItem('epark_sms_senderid');
+
+    if (document.getElementById('cfgSmsProvider')) document.getElementById('cfgSmsProvider').value = s.sms.provider || savedProv || 'mock';
+    if (document.getElementById('cfgSmsApiKey')) document.getElementById('cfgSmsApiKey').value = s.sms.apiKey || savedKey || '';
+    if (document.getElementById('cfgSmsSenderId')) document.getElementById('cfgSmsSenderId').value = s.sms.senderId || savedSender || 'PARKNG';
 
     if (document.getElementById('cfgRazorpayKeyId')) document.getElementById('cfgRazorpayKeyId').value = s.payment.keyId || '';
     if (document.getElementById('cfgRazorpayKeySecret')) document.getElementById('cfgRazorpayKeySecret').value = s.payment.keySecret || '';
     if (document.getElementById('cfgRazorpayMode')) document.getElementById('cfgRazorpayMode').value = s.payment.mode || 'test';
 
     const lblSms = document.getElementById('lblCurrentSmsProvider');
-    if (lblSms) lblSms.textContent = s.sms.provider.toUpperCase();
+    if (lblSms) lblSms.textContent = (s.sms.provider || savedProv || 'mock').toUpperCase();
     const phoneSender = document.getElementById('phoneSenderIdDisplay');
-    if (phoneSender) phoneSender.textContent = s.sms.senderId || 'PARKNG';
+    if (phoneSender) phoneSender.textContent = s.sms.senderId || savedSender || 'PARKNG';
 
   } catch (e) {
     console.warn('Failed to load gateway settings:', e);
