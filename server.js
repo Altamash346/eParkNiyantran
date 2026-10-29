@@ -441,10 +441,13 @@ const server = http.createServer(async (req, res) => {
         ? normalizedPhone.slice(0, 6) + '•••• ••' + normalizedPhone.slice(-2)
         : normalizedPhone;
 
-      // Attempt SMS gateway transmission (Fast2SMS or Mock)
+      // Attempt real SMS gateway transmission (Fast2SMS or Mock)
+      let smsResult = null;
       try {
-        await sendSmsViaGateway(
+        smsResult = await sendSmsViaGateway(
+          'OTP-' + plainDigits,
           normalizedPhone,
+          'OTP_VERIFY',
           `Your eParkNiyantran parking access verification code is ${code}. Valid for 5 minutes.`
         );
       } catch (err) {
@@ -458,7 +461,9 @@ const server = http.createServer(async (req, res) => {
         maskedPhone: maskedPhone,
         expiresInSeconds: 300,
         cooldownSeconds: 30,
-        demoCode: code
+        demoCode: code,
+        smsResult: smsResult,
+        gatewayNotice: smsResult?.failureReason || null
       });
     }
 

@@ -20,7 +20,7 @@ const DEFAULT_API_SETTINGS = {
   },
   sms: {
     provider: process.env.SMS_PROVIDER || 'mock', // 'fast2sms' | 'msg91' | 'webhook' | 'mock'
-    apiKey: process.env.SMS_API_KEY || '',
+    apiKey: process.env.SMS_API_KEY || 'ziJQ44Cw1EJYTZOAOYZmrvrzQhF3sYBGvYoEMcmm07ghIryd7KnZLFiB7ZUHZHoxJteO61JkDpay38Dj',
     senderId: process.env.SMS_SENDER_ID || 'PARKNG',
     webhookUrl: process.env.SMS_WEBHOOK_URL || ''
   },
@@ -350,7 +350,8 @@ async function sendSmsViaGateway(sessionId, phone, messageType, messageBody) {
   let failureReason = null;
 
   // Real Fast2SMS Provider Dispatch
-  if (settings.provider === 'fast2sms' && settings.apiKey && cleanPhone.length === 10) {
+  const isFast2Sms = settings.provider === 'fast2sms' && !sessionId.startsWith('TEST-') && process.env.NODE_ENV !== 'test';
+  if (isFast2Sms && settings.apiKey && cleanPhone.length === 10) {
     try {
       const useRoute = (settings.senderId && settings.senderId !== 'TXTIND' && settings.senderId !== 'PARKNG') ? 'v3' : 'q';
       const payload = {
@@ -367,7 +368,7 @@ async function sendSmsViaGateway(sessionId, phone, messageType, messageBody) {
       const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
         method: 'POST',
         headers: {
-          'authorization': settings.apiKey,
+          'authorization': settings.apiKey.trim(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
@@ -375,7 +376,7 @@ async function sendSmsViaGateway(sessionId, phone, messageType, messageBody) {
       const data = await res.json();
       if (!data.return) {
         providerStatus = 'FAILED';
-        failureReason = data.message || 'Fast2SMS returned failure';
+        failureReason = (Array.isArray(data.message) ? data.message.join(', ') : data.message) || `Fast2SMS Code ${data.status_code || 'Err'}`;
       }
     } catch (err) {
       providerStatus = 'FAILED';
@@ -422,7 +423,8 @@ async function sendSmsViaGateway(sessionId, phone, messageType, messageBody) {
     phone,
     status: providerStatus,
     dltTemplateId,
-    provider: settings.provider
+    provider: isFast2Sms ? 'fast2sms' : settings.provider,
+    failureReason: failureReason
   };
 }
 

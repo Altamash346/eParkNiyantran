@@ -630,9 +630,13 @@ function initMobileOtpWorkflow() {
         if (d.success) {
           if (otpInputRow) otpInputRow.classList.remove('hidden');
           if (otpFeedbackText) {
-            otpFeedbackText.innerHTML = d.demoCode
-              ? `<span class="text-amber-400 font-bold">[DEMO OTP: ${d.demoCode}]</span> Code sent to ${d.maskedPhone || phone}.`
-              : `Code dispatched to ${d.maskedPhone || phone}. Valid 5 mins.`;
+            let notice = '';
+            if (d.gatewayNotice) {
+              notice = `<div class="text-[10px] text-amber-300 mt-0.5 font-sans">⚠️ Carrier SMS: ${d.gatewayNotice}</div>`;
+            }
+            otpFeedbackText.innerHTML = (d.demoCode
+              ? `<span class="text-amber-400 font-bold">[DEMO OTP: ${d.demoCode}]</span> Dispatched to ${d.maskedPhone || phone}. Valid 5 mins.`
+              : `Dispatched to ${d.maskedPhone || phone}. Valid 5 mins.`) + notice;
           }
           if (inputMobileOtp && d.demoCode) {
             inputMobileOtp.value = d.demoCode;
