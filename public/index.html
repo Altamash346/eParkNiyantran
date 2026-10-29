@@ -389,11 +389,29 @@
                     4-Wheeler (Car)
                   </span>
                 </div>
-                <div class="text-slate-400 grid grid-cols-2 gap-2 text-[11px] pt-1">
-                  <div>Model: <span id="rtoModel" class="text-slate-200 font-medium">Hyundai Creta</span></div>
-                  <div>Phone: <span id="rtoPhone" class="text-slate-200 font-mono">+91 98230 12345</span></div>
-                  <div>RC Status: <span id="rtoRcStatus" class="text-emerald-400 font-medium">ACTIVE</span></div>
-                  <div>Pending Fine: <span id="rtoFineStatus" class="text-emerald-400 font-medium">None (₹0)</span></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1.5 text-xs">
+                  <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <div>
+                      <div class="text-[10px] text-slate-400 font-medium">Model: <strong id="rtoModel" class="text-slate-200">Hyundai Creta</strong></div>
+                      <div class="text-[10px] text-slate-400 mt-0.5">RC: <span id="rtoRcStatus" class="text-emerald-400 font-bold">ACTIVE</span></div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[10px] text-slate-400 font-medium">Fine:</div>
+                      <div id="rtoFineStatus" class="text-emerald-400 font-bold text-[11px]">None (₹0)</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                      <span class="flex items-center gap-1">
+                        <i data-lucide="phone" class="w-3 h-3 text-emerald-400"></i>
+                        <span>Citizen Mobile (for Real SMS / WhatsApp):</span>
+                      </span>
+                      <span class="text-[9px] text-emerald-400 font-medium">Editable</span>
+                    </label>
+                    <input type="tel" id="inputCustomerPhone" placeholder="+91 98230 12345" value="+91 98230 12345"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-emerald-500">
+                  </div>
                 </div>
 
                 <!-- Ban Alert Box (Shown if banned) -->
@@ -1238,32 +1256,89 @@
           </div>
         </div>
 
-        <!-- SMS Outbox & DLT Log (2 Cols) -->
-        <div class="lg:col-span-2 glass-panel p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-          <div>
+        <!-- SMS Outbox & Direct Messenger (2 Cols) -->
+        <div class="lg:col-span-2 space-y-4">
+
+          <!-- Direct Messenger to Real Handsets -->
+          <div class="glass-panel p-4 rounded-xl border border-emerald-500/30 space-y-3">
             <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 class="text-sm font-bold text-white">DLT Dispatch Outbox Log</h3>
-              <span class="text-xs text-slate-400">Last 50 messages</span>
+              <div class="flex items-center space-x-2">
+                <i data-lucide="send" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="text-sm font-bold text-white">Live Citizen Messenger (Send to Real Phone / WhatsApp)</h3>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">Active Dispatch</span>
             </div>
 
-            <div class="mt-3 overflow-x-auto max-h-96">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-900 text-slate-400">
-                  <tr>
-                    <th class="p-2">ID</th>
-                    <th class="p-2">Recipient</th>
-                    <th class="p-2">Template</th>
-                    <th class="p-2">Message Content</th>
-                    <th class="p-2">Status</th>
-                    <th class="p-2 text-right">Sent Time</th>
-                  </tr>
-                </thead>
-                <tbody id="smsTableBody" class="divide-y divide-slate-800">
-                  <!-- Populated dynamically -->
-                </tbody>
-              </table>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <label class="block text-slate-300 font-semibold mb-1">Customer Phone Number:</label>
+                <input type="tel" id="directMsgPhone" placeholder="+91 98765 43210" value="+91 98230 12345"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-white focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block text-slate-300 font-semibold mb-1">Select Message Template:</label>
+                <select id="directMsgPreset" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
+                  <option value="welcome">🚗 Entry Welcome: Parking confirmed in Bay 4W-01. Bill & timings attached.</option>
+                  <option value="reminder">⏳ 5-Min Reminder: Your scheduled stay expires in 5 mins. Please proceed to gate.</option>
+                  <option value="receipt">✅ Payment Received: ₹100 pre-paid successfully. Barrier will auto-open upon exit.</option>
+                  <option value="overdue">⚠️ Overdue Notice: Vehicle overstayed tier limit. Fine applied per municipal tariff.</option>
+                  <option value="custom">✍️ Custom Message...</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <textarea id="directMsgBody" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-emerald-500" placeholder="Type message to citizen...">[eParkNiyantran] Welcome! Vehicle MH 12 AB 1234 checked in at Gate 1. Bay: 4W-01. Timings & instant digital bill: http://localhost:3000/</textarea>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <div class="text-[11px] text-slate-400">
+                Deliver directly to customer's physical device:
+              </div>
+              <div class="flex items-center space-x-2">
+                <button type="button" id="btnSendDirectWhatsApp" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                  <span>Send via WhatsApp</span>
+                </button>
+                <button type="button" id="btnSendDirectSms" class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                  <span>Send via Carrier SMS</span>
+                </button>
+              </div>
+            </div>
+            <div id="directMsgFeedback" class="hidden p-2 rounded-lg text-xs font-semibold"></div>
+          </div>
+
+          <!-- Outbox Table -->
+          <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <h3 class="text-sm font-bold text-white">DLT Dispatch Outbox Log</h3>
+                <span class="text-xs text-slate-400">Last 50 messages</span>
+              </div>
+
+              <div class="mt-3 overflow-x-auto max-h-96">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-900 text-slate-400">
+                    <tr>
+                      <th class="p-2">ID</th>
+                      <th class="p-2">Recipient</th>
+                      <th class="p-2">Template</th>
+                      <th class="p-2">Message Content</th>
+                      <th class="p-2">Status</th>
+                      <th class="p-2 text-right">Sent Time</th>
+                      <th class="p-2 text-center">Resend</th>
+                    </tr>
+                  </thead>
+                  <tbody id="smsTableBody" class="divide-y divide-slate-800">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
+
         </div>
 
       </div>
@@ -1682,8 +1757,24 @@
 
       <!-- Action Buttons (No-print) -->
       <div class="space-y-2 pt-1 no-print">
+
+        <!-- Live Message Dispatch to Real Handset -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button type="button" id="btnSendBillWhatsApp" class="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-200"></i>
+            <span>Send on WhatsApp</span>
+          </button>
+
+          <button type="button" id="btnSendBillSmsGateway" class="py-2 px-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/30 flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="send" class="w-4 h-4 text-sky-200"></i>
+            <span>Send Carrier SMS</span>
+          </button>
+        </div>
+
+        <div id="billSmsFeedbackBox" class="hidden p-2 rounded-lg text-xs font-semibold text-center"></div>
+
         <div class="grid grid-cols-2 gap-2">
-          <button type="button" id="btnPrintBillBtn" class="py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center space-x-1.5 transition">
+          <button type="button" id="btnPrintBillBtn" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 shadow-sm flex items-center justify-center space-x-1.5 transition">
             <i data-lucide="printer" class="w-4 h-4"></i>
             <span>Print Bill Slip</span>
           </button>

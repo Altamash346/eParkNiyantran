@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initBoundaryTestRunner();
   initIoTSimulator();
   initGatewaysTab();
+  initDirectMessenger();
   initExportAction();
 
   // Load initial data
@@ -485,10 +486,14 @@ function initEntryWorkflow() {
       return;
     }
 
+    const phoneInput = document.getElementById('inputCustomerPhone');
+    const customerPhone = phoneInput ? phoneInput.value.trim() : undefined;
+
     const payload = {
       plate: rawPlate,
       category,
       slot_id: slotId || undefined,
+      phone: customerPhone || undefined,
       entry_time: inTime,
       expected_exit_time: outTime,
       out_time: outTime,
@@ -573,7 +578,10 @@ async function verifyRtoPlate(plate) {
 
       document.getElementById('rtoOwner').textContent = v.owner || 'Registered Citizen';
       document.getElementById('rtoModel').textContent = v.makeModel || 'Standard Vehicle';
-      document.getElementById('rtoPhone').textContent = v.phone || '+91 98230 12345';
+      const custPhoneInput = document.getElementById('inputCustomerPhone');
+      if (custPhoneInput) custPhoneInput.value = v.phone || '+91 98230 12345';
+      const rtoPhoneEl = document.getElementById('rtoPhone');
+      if (rtoPhoneEl) rtoPhoneEl.textContent = v.phone || '+91 98230 12345';
       document.getElementById('rtoRcStatus').textContent = v.rcStatus || 'ACTIVE';
       
       const categoryBadge = document.getElementById('rtoCategoryBadge');
@@ -1220,6 +1228,77 @@ function initBillModal() {
     });
   }
 
+  const sendWhatsAppBtn = document.getElementById('btnSendBillWhatsApp');
+  const sendSmsGatewayBtn = document.getElementById('btnSendBillSmsGateway');
+  const feedbackBox = document.getElementById('billSmsFeedbackBox');
+
+  if (sendWhatsAppBtn) {
+    sendWhatsAppBtn.addEventListener('click', () => {
+      if (!currentGeneratedBill) return;
+      const b = currentGeneratedBill;
+      const phoneInput = document.getElementById('inputCustomerPhone');
+      const phone = b.phone || (phoneInput ? phoneInput.value : '9823012345');
+      const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+
+      const inStr = new Date(b.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const outStr = new Date(b.expected_exit_time || b.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      const msg = `🚗 *eParkNiyantran - Parking Bill Slip* 🚗\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📄 *Bill No:* ${b.bill_number || ('EPN-' + (b.session_id||'').slice(-6))}\n` +
+        `🚙 *Vehicle:* ${b.vehicle_plate}\n` +
+        `🅿️ *Bay:* ${b.slot_id} (${b.category === '2W' ? '2-Wheeler' : '4-Wheeler'})\n` +
+        `🕒 *In-Time:* ${inStr}\n` +
+        `⏳ *Scheduled Out:* ${outStr}\n` +
+        `💰 *Total Amount:* ₹${b.total_amount} (${b.is_prepaid ? 'PAID ✅' : 'DUE ⚠️'})\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📍 *Location:* Market Place Parking\n` +
+        `ℹ️ Retain this message for fast barrier exit clearance.`;
+
+      const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
+    });
+  }
+
+  if (sendSmsGatewayBtn) {
+    sendSmsGatewayBtn.addEventListener('click', async () => {
+      if (!currentGeneratedBill) return;
+      const b = currentGeneratedBill;
+      const phoneInput = document.getElementById('inputCustomerPhone');
+      const phone = b.phone || (phoneInput ? phoneInput.value : '9823012345');
+
+      if (feedbackBox) {
+        feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-blue-500/15 text-blue-400 block';
+        feedbackBox.textContent = 'Dispatching carrier SMS via gateway...';
+      }
+
+      try {
+        const smsMsg = `[eParkNiyantran] Bill #${b.bill_number || b.session_id} for ${b.vehicle_plate}. Bay: ${b.slot_id}. Amount: ₹${b.total_amount} (${b.is_prepaid ? 'PAID' : 'DUE'}). Retain for exit.`;
+        const res = await fetch('/api/sms/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, message: smsMsg })
+        });
+        const data = await res.json();
+        if (feedbackBox) {
+          if (data.result && data.result.status === 'SENT') {
+            feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-emerald-500/20 text-emerald-400 block';
+            feedbackBox.textContent = `✅ Live message dispatched to ${phone} via ${data.result.provider}!`;
+          } else {
+            feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-amber-500/20 text-amber-300 block';
+            feedbackBox.textContent = `Provider status: ${data.result?.status || 'Sent to sandbox'}. For real SIM delivery, set Fast2SMS API key in Gateways tab or click 'Send on WhatsApp'!`;
+          }
+        }
+        loadNotifications();
+      } catch (e) {
+        if (feedbackBox) {
+          feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-rose-500/20 text-rose-400 block';
+          feedbackBox.textContent = `Failed: ${e.message}`;
+        }
+      }
+    });
+  }
+
   if (printBtn) {
     printBtn.addEventListener('click', () => {
       window.print();
@@ -1769,26 +1848,114 @@ async function loadNotifications() {
     tbody.innerHTML = '';
     
     if (data.notifications.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No dispatched SMS messages yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No dispatched SMS messages yet.</td></tr>';
       return;
     }
 
     data.notifications.forEach(n => {
+      const cleanPhone = (n.recipient_phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(n.message_body)}`;
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-900';
+      tr.className = 'hover:bg-slate-900/60 dark:hover:bg-slate-900 transition';
       tr.innerHTML = `
         <td class="p-2 font-mono text-[11px] text-slate-400">${n.notification_id}</td>
-        <td class="p-2 font-mono text-white">${n.recipient_phone}</td>
-        <td class="p-2 font-mono text-[10px] text-blue-400">${n.dlt_template_id}</td>
-        <td class="p-2 text-slate-300 max-w-xs truncate">${n.message_body}</td>
-        <td class="p-2"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">${n.status}</span></td>
-        <td class="p-2 text-right font-mono text-[10px] text-slate-400">${new Date(n.sent_time || n.scheduled_time).toLocaleTimeString()}</td>
+        <td class="p-2 font-mono text-slate-800 dark:text-white font-medium">${n.recipient_phone}</td>
+        <td class="p-2 font-mono text-[10px] text-blue-500 dark:text-blue-400">${n.dlt_template_id}</td>
+        <td class="p-2 text-slate-700 dark:text-slate-300 max-w-xs truncate" title="${n.message_body}">${n.message_body}</td>
+        <td class="p-2"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">${n.status}</span></td>
+        <td class="p-2 text-right font-mono text-[10px] text-slate-500 dark:text-slate-400">${new Date(n.sent_time || n.scheduled_time).toLocaleTimeString()}</td>
+        <td class="p-2 text-center">
+          <a href="${waUrl}" target="_blank" title="Send direct to customer via WhatsApp" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] transition border border-emerald-500/30">
+            <span>📱 WhatsApp</span>
+          </a>
+        </td>
       `;
       tbody.appendChild(tr);
     });
 
   } catch (err) {
     console.error('Failed to load notifications:', err);
+  }
+}
+
+function initDirectMessenger() {
+  const presetSelect = document.getElementById('directMsgPreset');
+  const bodyInput = document.getElementById('directMsgBody');
+  const phoneInput = document.getElementById('directMsgPhone');
+  const waBtn = document.getElementById('btnSendDirectWhatsApp');
+  const smsBtn = document.getElementById('btnSendDirectSms');
+  const feedback = document.getElementById('directMsgFeedback');
+
+  if (presetSelect && bodyInput) {
+    presetSelect.addEventListener('change', () => {
+      const v = presetSelect.value;
+      if (v === 'welcome') {
+        bodyInput.value = `[eParkNiyantran] Welcome! Vehicle checked in at Gate 1. Bay: 4W-01. Timings & instant digital bill: ${window.location.origin}/`;
+      } else if (v === 'reminder') {
+        bodyInput.value = `[eParkNiyantran Alert] ⚠️ 5-Min Reminder: Your scheduled parking stay is ending in 5 minutes. Please proceed to the exit to avoid overstay penalty.`;
+      } else if (v === 'receipt') {
+        bodyInput.value = `[eParkNiyantran] ✅ Payment Received! Parking fee settled successfully. Thank you for visiting Market Place.`;
+      } else if (v === 'overdue') {
+        bodyInput.value = `[eParkNiyantran Alert] 🚨 Overdue Notice: Vehicle exceeded scheduled stay. Fine applied per municipal tariff. Clear dues to avoid towing/ban.`;
+      } else if (v === 'custom') {
+        bodyInput.value = '';
+        bodyInput.focus();
+      }
+    });
+  }
+
+  if (waBtn) {
+    waBtn.addEventListener('click', () => {
+      const rawPhone = phoneInput ? phoneInput.value.trim() : '9823012345';
+      const cleanPhone = rawPhone.replace(/[^0-9]/g, '').slice(-10);
+      const text = bodyInput ? bodyInput.value.trim() : '';
+      if (!cleanPhone) {
+        alert('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      const url = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    });
+  }
+
+  if (smsBtn) {
+    smsBtn.addEventListener('click', async () => {
+      const rawPhone = phoneInput ? phoneInput.value.trim() : '9823012345';
+      const text = bodyInput ? bodyInput.value.trim() : '';
+      if (!text) {
+        alert('Please enter message text to send.');
+        return;
+      }
+      if (feedback) {
+        feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-400 block';
+        feedback.textContent = 'Dispatching message via SMS gateway...';
+      }
+
+      try {
+        const res = await fetch('/api/sms/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: rawPhone, message: text })
+        });
+        const data = await res.json();
+        if (feedback) {
+          if (data.result && data.result.status === 'SENT') {
+            feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 block';
+            feedback.textContent = `✅ Live carrier SMS dispatched to ${rawPhone} via ${data.result.provider}!`;
+          } else {
+            feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 block';
+            feedback.textContent = `Delivered to Sandbox log. To send real carrier SMS directly, add your free Fast2SMS API key in the Gateways tab, or use 'Send via WhatsApp'!`;
+          }
+        }
+        appendVirtualPhoneSms('Citizen SMS', text);
+        loadNotifications();
+      } catch (e) {
+        if (feedback) {
+          feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-rose-500/20 text-rose-400 block';
+          feedback.textContent = `Dispatch Error: ${e.message}`;
+        }
+      }
+    });
   }
 }
 

@@ -352,20 +352,25 @@ async function sendSmsViaGateway(sessionId, phone, messageType, messageBody) {
   // Real Fast2SMS Provider Dispatch
   if (settings.provider === 'fast2sms' && settings.apiKey && cleanPhone.length === 10) {
     try {
+      const useRoute = (settings.senderId && settings.senderId !== 'TXTIND' && settings.senderId !== 'PARKNG') ? 'v3' : 'q';
+      const payload = {
+        route: useRoute,
+        message: messageBody,
+        language: 'english',
+        flash: 0,
+        numbers: cleanPhone
+      };
+      if (useRoute === 'v3') {
+        payload.sender_id = settings.senderId;
+      }
+
       const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
         method: 'POST',
         headers: {
           'authorization': settings.apiKey,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          route: 'v3',
-          sender_id: settings.senderId || 'TXTIND',
-          message: messageBody,
-          language: 'english',
-          flash: 0,
-          numbers: cleanPhone
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!data.return) {
