@@ -117,6 +117,20 @@ button:active {
   border-right: 2.5px solid #3b82f6;
 }
 
+/* Webcam Video HUD & Dropzone Polish */
+#cameraPane video {
+  transform: scaleX(1);
+}
+
+#imageDropzone.border-blue-500 {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: #3b82f6 !important;
+}
+
+#otpInputRow input:focus {
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+}
+
 /* Authentic Indian Number Plate (High Security Registration Plate - HSRP) */
 .indian-hsrp-plate {
   display: inline-flex;

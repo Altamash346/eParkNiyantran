@@ -11,6 +11,13 @@ let currentSelectedSessionForExit = null;
 let currentVahanVerified = true;
 let currentGeneratedBill = null;
 
+// Camera ANPR & 2FA State
+let cameraMediaStream = null;
+let currentEvidenceImage = null;
+let currentCaptureMethod = 'PRESET';
+let isMobileVerified = false;
+let otpCooldownInterval = null;
+
 // Initialize on DOM loaded
 document.addEventListener('DOMContentLoaded', () => {
   initIcons();
@@ -19,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavDrawer();
   initTabs();
   initPresetButtons();
+  initCameraAndAnprWorkflow();
+  initMobileOtpWorkflow();
   initEntryWorkflow();
   initExitWorkflow();
   initPaymentModal();
@@ -310,6 +319,383 @@ function initPresetButtons() {
   });
 }
 
+// ----------------------------------------------------
+// 1. Live Camera & ANPR / OCR Workflow
+// ----------------------------------------------------
+function initCameraAndAnprWorkflow() {
+  const tabBtnPresets = document.getElementById('tabBtnPresets');
+  const tabBtnUseCamera = document.getElementById('tabBtnUseCamera');
+  const tabBtnUploadImage = document.getElementById('tabBtnUploadImage');
+  const presetsPane = document.getElementById('presetsPane');
+  const cameraPane = document.getElementById('cameraPane');
+  const uploadPane = document.getElementById('uploadPane');
+  const previewCard = document.getElementById('previewCard');
+  const captureModeLabel = document.getElementById('captureModeLabel');
+
+  const cameraVideo = document.getElementById('cameraVideo');
+  const cameraCanvas = document.getElementById('cameraCanvas');
+  const btnCaptureFrame = document.getElementById('btnCaptureFrame');
+  const btnStopCamera = document.getElementById('btnStopCamera');
+
+  const imageDropzone = document.getElementById('imageDropzone');
+  const vehicleImageInput = document.getElementById('vehicleImageInput');
+  const btnChooseImage = document.getElementById('btnChooseImage');
+  const btnRemoveImage = document.getElementById('btnRemoveImage');
+  const btnRetakeImage = document.getElementById('btnRetakeImage');
+
+  function setMode(mode) {
+    if (tabBtnPresets) tabBtnPresets.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition';
+    if (tabBtnUseCamera) tabBtnUseCamera.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition';
+    if (tabBtnUploadImage) tabBtnUploadImage.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition';
+
+    if (presetsPane) presetsPane.classList.add('hidden');
+    if (cameraPane) cameraPane.classList.add('hidden');
+    if (uploadPane) uploadPane.classList.add('hidden');
+
+    if (mode === 'PRESETS') {
+      if (tabBtnPresets) tabBtnPresets.className = 'py-1.5 px-2 rounded-lg text-xs font-bold bg-blue-600 text-white flex items-center justify-center space-x-1.5 shadow transition';
+      if (presetsPane) presetsPane.classList.remove('hidden');
+      if (captureModeLabel) captureModeLabel.textContent = 'Presets Active';
+      stopCamera();
+    } else if (mode === 'CAMERA') {
+      if (tabBtnUseCamera) tabBtnUseCamera.className = 'py-1.5 px-2 rounded-lg text-xs font-bold bg-blue-600 text-white flex items-center justify-center space-x-1.5 shadow transition';
+      if (cameraPane) cameraPane.classList.remove('hidden');
+      if (captureModeLabel) captureModeLabel.textContent = 'Webcam Live Stream';
+      startCamera();
+    } else if (mode === 'UPLOAD') {
+      if (tabBtnUploadImage) tabBtnUploadImage.className = 'py-1.5 px-2 rounded-lg text-xs font-bold bg-blue-600 text-white flex items-center justify-center space-x-1.5 shadow transition';
+      if (uploadPane) uploadPane.classList.remove('hidden');
+      if (captureModeLabel) captureModeLabel.textContent = 'Image Upload Dropzone';
+      stopCamera();
+    }
+    initIcons();
+  }
+
+  if (tabBtnPresets) tabBtnPresets.addEventListener('click', () => setMode('PRESETS'));
+  if (tabBtnUseCamera) tabBtnUseCamera.addEventListener('click', () => setMode('CAMERA'));
+  if (tabBtnUploadImage) tabBtnUploadImage.addEventListener('click', () => setMode('UPLOAD'));
+
+  async function startCamera() {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        cameraMediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        if (cameraVideo) cameraVideo.srcObject = cameraMediaStream;
+      } else {
+        alert('Webcam camera access is not supported by this browser.');
+        setMode('PRESETS');
+      }
+    } catch (e) {
+      console.warn('Camera stream notice:', e);
+      alert('Unable to access camera: ' + (e.message || 'Permission denied'));
+      setMode('PRESETS');
+    }
+  }
+
+  function stopCamera() {
+    if (cameraMediaStream) {
+      cameraMediaStream.getTracks().forEach(track => track.stop());
+      cameraMediaStream = null;
+    }
+    if (cameraVideo) cameraVideo.srcObject = null;
+  }
+
+  if (btnStopCamera) {
+    btnStopCamera.addEventListener('click', () => setMode('PRESETS'));
+  }
+
+  if (btnCaptureFrame && cameraVideo && cameraCanvas) {
+    btnCaptureFrame.addEventListener('click', () => {
+      if (!cameraVideo.videoWidth) {
+        alert('Camera stream is still starting. Please wait a moment.');
+        return;
+      }
+      cameraCanvas.width = cameraVideo.videoWidth;
+      cameraCanvas.height = cameraVideo.videoHeight;
+      const ctx = cameraCanvas.getContext('2d');
+      ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+      const dataUrl = cameraCanvas.toDataURL('image/jpeg', 0.85);
+      stopCamera();
+      setMode('PRESETS');
+      processVehicleImage(dataUrl, 'CAMERA');
+    });
+  }
+
+  // Upload handlers
+  if (btnChooseImage && vehicleImageInput) {
+    btnChooseImage.addEventListener('click', (e) => {
+      e.stopPropagation();
+      vehicleImageInput.click();
+    });
+  }
+
+  if (imageDropzone && vehicleImageInput) {
+    imageDropzone.addEventListener('click', () => vehicleImageInput.click());
+    imageDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      imageDropzone.classList.add('border-blue-500');
+    });
+    imageDropzone.addEventListener('dragleave', () => imageDropzone.classList.remove('border-blue-500'));
+    imageDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      imageDropzone.classList.remove('border-blue-500');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+    vehicleImageInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+      }
+    });
+  }
+
+  function handleFile(file) {
+    if (!file.type.match(/^image\/(jpeg|png|webp)$/i)) {
+      alert('Please select a JPG, PNG, or WebP image file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image exceeds 10MB limit.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setMode('PRESETS');
+      processVehicleImage(evt.target.result, 'UPLOAD');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  if (btnRemoveImage) {
+    btnRemoveImage.addEventListener('click', () => {
+      currentEvidenceImage = null;
+      if (previewCard) previewCard.classList.add('hidden');
+      if (vehicleImageInput) vehicleImageInput.value = '';
+    });
+  }
+
+  if (btnRetakeImage) {
+    btnRetakeImage.addEventListener('click', () => {
+      if (currentCaptureMethod === 'CAMERA') {
+        setMode('CAMERA');
+      } else {
+        setMode('UPLOAD');
+      }
+    });
+  }
+}
+
+// Extract plate patterns using Indian standard conventions
+function extractClientPlate(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const textToScan = rawText.toUpperCase();
+
+  // 1. Bharat Series (e.g. 22BH1234AA)
+  const bhPatterns = [
+    /\b([0-9]{2})\s*BH\s*([0-9]{4})\s*([A-Z]{1,2})\b/i,
+    /\b([0-9]{2})\s*BH\s*([0-9]{4})\b/i
+  ];
+  for (const pat of bhPatterns) {
+    const m = textToScan.match(pat);
+    if (m) return m[1] + 'BH' + m[2] + (m[3] || '');
+  }
+
+  // 2. Standard State (e.g. MH 12 AB 1234)
+  const statePatterns = [
+    /\b([A-Z]{2})[\s\-]*([0-9]{1,2})[\s\-]*([A-Z]{1,3})[\s\-]*([0-9]{4})\b/i,
+    /\b([A-Z]{2})[\s\-]*([0-9]{1,2})[\s\-]*([0-9]{4})\b/i
+  ];
+  for (const pat of statePatterns) {
+    const m = textToScan.match(pat);
+    if (m) return m[1] + m[2].padStart(2, '0') + (m[3] || '') + m[4];
+  }
+
+  // 3. Fallback lines
+  const lines = rawText.split(/[\r\n]+/);
+  for (const line of lines) {
+    const norm = line.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^IND/, '');
+    if (norm.length >= 8 && norm.length <= 11) {
+      if (/^[A-Z]{2}[0-9]/.test(norm) || /^[0-9]{2}BH/.test(norm)) return norm;
+    }
+  }
+  return null;
+}
+
+// Process Image with Client Tesseract + Server OCR
+async function processVehicleImage(dataUrl, method = 'UPLOAD') {
+  currentEvidenceImage = dataUrl;
+  currentCaptureMethod = method;
+
+  const preview = document.getElementById('previewImage');
+  const previewCard = document.getElementById('previewCard');
+  const label = document.getElementById('previewImageLabel');
+  const badge = document.getElementById('evidenceSourceBadge');
+  const ocrConfidence = document.getElementById('ocrConfidenceText');
+
+  if (preview) preview.src = dataUrl;
+  if (previewCard) previewCard.classList.remove('hidden');
+  if (label) label.textContent = method === 'CAMERA' ? 'Webcam ANPR Evidence Frame' : 'Uploaded Plate Photo';
+  if (badge) badge.textContent = method;
+  if (ocrConfidence) ocrConfidence.textContent = 'SCANNING...';
+
+  let detected = false;
+
+  // 1. Concurrently run Browser Tesseract.js if available
+  if (window.Tesseract && typeof window.Tesseract.recognize === 'function') {
+    window.Tesseract.recognize(dataUrl, 'eng', {
+      logger: (m) => {
+        if (m && m.status === 'recognizing text' && m.progress && !detected) {
+          if (ocrConfidence) ocrConfidence.textContent = `OCR: ${Math.round(m.progress * 100)}%`;
+        }
+      }
+    }).then(({ data }) => {
+      if (!detected && data && data.text) {
+        const clientCand = extractClientPlate(data.text);
+        if (clientCand) {
+          detected = true;
+          const clientConf = data.confidence ? Math.min(0.99, Math.max(0.70, data.confidence / 100)) : 0.95;
+          applyDetectedPlate(clientCand, clientConf, 'Browser OCR');
+        }
+      }
+    }).catch(e => console.warn('Browser OCR notice:', e.message));
+  }
+
+  // 2. Concurrently call Server OCR endpoint
+  try {
+    const res = await fetch('/api/ocr/recognize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Operator-Id': currentOperator },
+      body: JSON.stringify({ image: dataUrl, capture_method: method })
+    });
+    const d = await res.json();
+    const detectedPlate = d.plate || d.ocr?.normalized;
+
+    if (d.success && detectedPlate) {
+      detected = true;
+      const conf = d.confidence || d.ocr?.confidence || 0.95;
+      applyDetectedPlate(detectedPlate, conf, 'Server OCR Engine');
+    } else if (!detected) {
+      if (ocrConfidence) ocrConfidence.textContent = 'Manual Review Needed';
+    }
+  } catch (err) {
+    console.warn('Server OCR notice:', err.message);
+  }
+}
+
+function applyDetectedPlate(plateStr, confScore = 0.95, source = 'OCR') {
+  if (!plateStr) return;
+  const clean = plateStr.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const inputPlate = document.getElementById('inputEntryPlate');
+  const ocrConfidence = document.getElementById('ocrConfidenceText');
+
+  if (inputPlate) inputPlate.value = clean;
+  if (ocrConfidence) ocrConfidence.textContent = `${Math.round(confScore * 100)}% (${source})`;
+
+  updatePlateVisual(clean);
+  verifyRtoPlate(clean);
+}
+
+// ----------------------------------------------------
+// 2. Mobile OTP 2FA Workflow
+// ----------------------------------------------------
+function initMobileOtpWorkflow() {
+  const btnSendMobileOtp = document.getElementById('btnSendMobileOtp');
+  const btnVerifyMobileOtp = document.getElementById('btnVerifyMobileOtp');
+  const inputCustomerPhone = document.getElementById('inputCustomerPhone');
+  const inputMobileOtp = document.getElementById('inputMobileOtp');
+  const otpInputRow = document.getElementById('otpInputRow');
+  const mobileVerifiedAlert = document.getElementById('mobileVerifiedAlert');
+  const otpFeedbackText = document.getElementById('otpFeedbackText');
+
+  if (btnSendMobileOtp && inputCustomerPhone) {
+    btnSendMobileOtp.addEventListener('click', async () => {
+      const phone = inputCustomerPhone.value.trim();
+      if (!phone) {
+        alert('Please enter citizen mobile number first.');
+        return;
+      }
+
+      btnSendMobileOtp.disabled = true;
+      btnSendMobileOtp.innerHTML = '<span>Sending...</span>';
+
+      try {
+        const res = await fetch('/api/otp/send-mobile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Operator-Id': currentOperator },
+          body: JSON.stringify({ phone })
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (otpInputRow) otpInputRow.classList.remove('hidden');
+          if (otpFeedbackText) {
+            otpFeedbackText.innerHTML = d.demoCode
+              ? `<span class="text-amber-400 font-bold">[DEMO OTP: ${d.demoCode}]</span> Code sent to ${d.maskedPhone || phone}.`
+              : `Code dispatched to ${d.maskedPhone || phone}. Valid 5 mins.`;
+          }
+          if (inputMobileOtp && d.demoCode) {
+            inputMobileOtp.value = d.demoCode;
+          }
+
+          // 30s countdown cooldown
+          let seconds = 30;
+          btnSendMobileOtp.textContent = `Resend (${seconds}s)`;
+          clearInterval(otpCooldownInterval);
+          otpCooldownInterval = setInterval(() => {
+            seconds--;
+            if (seconds <= 0) {
+              clearInterval(otpCooldownInterval);
+              btnSendMobileOtp.disabled = false;
+              btnSendMobileOtp.innerHTML = '<span>Send OTP</span>';
+            } else {
+              btnSendMobileOtp.textContent = `Resend (${seconds}s)`;
+            }
+          }, 1000);
+        } else {
+          alert('Failed to send OTP: ' + (d.error || 'Server error'));
+          btnSendMobileOtp.disabled = false;
+          btnSendMobileOtp.innerHTML = '<span>Send OTP</span>';
+        }
+      } catch (err) {
+        alert('Network error connecting to OTP service.');
+        btnSendMobileOtp.disabled = false;
+        btnSendMobileOtp.innerHTML = '<span>Send OTP</span>';
+      }
+    });
+  }
+
+  if (btnVerifyMobileOtp && inputMobileOtp && inputCustomerPhone) {
+    btnVerifyMobileOtp.addEventListener('click', async () => {
+      const code = inputMobileOtp.value.trim();
+      const phone = inputCustomerPhone.value.trim();
+      if (!code || code.length !== 6) {
+        alert('Please enter the 6-digit OTP code.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/otp/verify-mobile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Operator-Id': currentOperator },
+          body: JSON.stringify({ phone, code })
+        });
+        const d = await res.json();
+        if (d.success && d.verified) {
+          isMobileVerified = true;
+          if (mobileVerifiedAlert) mobileVerifiedAlert.classList.remove('hidden');
+          if (otpInputRow) otpInputRow.classList.add('hidden');
+          if (otpFeedbackText) otpFeedbackText.textContent = '';
+        } else {
+          alert('Verification failed: ' + (d.error || 'Invalid OTP code.'));
+        }
+      } catch (err) {
+        alert('Network error verifying OTP.');
+      }
+    });
+  }
+}
+
 function updatePlateVisual(plate) {
   const display = formatPlateDisplay(plate) || 'MH 12 AB 1234';
   document.getElementById('plateNumberDisplay').textContent = display;
@@ -514,7 +900,10 @@ function initEntryWorkflow() {
       ocr_raw: rawPlate,
       ocr_confidence: 0.96,
       manual_correction: false,
-      allow_unverified: isOverridden
+      allow_unverified: isOverridden,
+      evidence_image: currentEvidenceImage || undefined,
+      capture_method: currentCaptureMethod,
+      is_phone_verified: isMobileVerified
     };
 
     try {
@@ -1130,7 +1519,7 @@ function showBillModal(bill) {
   if (modelEl) modelEl.textContent = bill.make_model || 'Standard Vehicle';
 
   const ownerEl = document.getElementById('billModalOwner');
-  if (ownerEl) ownerEl.textContent = `${bill.owner_name || 'Registered Driver'} (${bill.phone || '+91 9800000000'})`;
+  if (ownerEl) ownerEl.textContent = `${bill.owner_name || 'Registered Driver'} (${bill.phone || '+91 9800000000'})${isMobileVerified ? ' • [✓ 2FA Verified]' : ''}`;
 
   const slotEl = document.getElementById('billModalSlot');
   if (slotEl) slotEl.textContent = `${bill.slot_id} (${bill.category === '2W' ? 'Zone A - Two-Wheelers' : 'Zone B - Four-Wheelers'})`;

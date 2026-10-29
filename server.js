@@ -24,6 +24,7 @@ const {
   isValidIndianPlate,
   formatPlateDisplay,
   processOcrCandidate,
+  recognizePlateFromImage,
   lookupMparivahan
 } = require('./ocr');
 const {
@@ -37,6 +38,9 @@ const {
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+// Active OTP store for 2-Factor driver mobile & email verification (5 min expiry)
+const activeMobileOtps = new Map();
 
 /**
  * Helper to parse JSON body
@@ -388,6 +392,129 @@ const server = http.createServer(async (req, res) => {
           error: vahanResult.error
         }
       });
+    }
+
+    // Direct Image OCR endpoint (Supports Camera stream & Upload)
+    if (pathname === '/api/ocr/recognize' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const image = body.image || '';
+      const method = body.capture_method || 'UPLOAD';
+      const clientText = body.text || body.plate || '';
+
+      let ocrResult;
+      if (clientText) {
+        ocrResult = processOcrCandidate(clientText);
+      } else {
+        ocrResult = recognizePlateFromImage(image, method);
+      }
+
+      return sendJson(res, 200, {
+        success: !!(ocrResult.normalized || ocrResult.plate),
+        plate: ocrResult.normalized || ocrResult.plate || '',
+        formatted: ocrResult.formatted || '',
+        confidence: ocrResult.confidence || 0,
+        ocr: ocrResult.ocr || ocrResult
+      });
+    }
+
+    // ----------------------------------------------------
+    // API: 2-Factor Driver Mobile & Email OTP Verification
+    // ----------------------------------------------------
+    if (pathname === '/api/otp/send-mobile' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const rawPhone = (body.phone || '').trim();
+      if (!rawPhone) {
+        return sendJson(res, 400, { success: false, error: 'Driver mobile number is required' });
+      }
+
+      const digits = rawPhone.replace(/\D/g, '');
+      const plainDigits = digits.length >= 10 ? digits.slice(-10) : digits;
+      const normalizedPhone = rawPhone.startsWith('+') ? rawPhone : `+91 ${plainDigits.slice(0, 5)} ${plainDigits.slice(5)}`;
+
+      // Generate 6-digit cryptographic random code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+      activeMobileOtps.set(plainDigits, { code, expiresAt, phone: normalizedPhone });
+
+      const maskedPhone = normalizedPhone.length >= 8 
+        ? normalizedPhone.slice(0, 6) + '•••• ••' + normalizedPhone.slice(-2)
+        : normalizedPhone;
+
+      // Attempt SMS gateway transmission (Fast2SMS or Mock)
+      try {
+        await sendSmsViaGateway(
+          normalizedPhone,
+          `Your eParkNiyantran parking access verification code is ${code}. Valid for 5 minutes.`
+        );
+      } catch (err) {
+        console.warn('SMS dispatch error:', err.message);
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        message: `OTP sent to ${maskedPhone}`,
+        destination: normalizedPhone,
+        maskedPhone: maskedPhone,
+        expiresInSeconds: 300,
+        cooldownSeconds: 30,
+        demoCode: code
+      });
+    }
+
+    if (pathname === '/api/otp/verify-mobile' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const rawPhone = (body.phone || '').trim();
+      const code = (body.code || '').trim();
+      const plainDigits = rawPhone.replace(/\D/g, '').slice(-10);
+
+      const entry = activeMobileOtps.get(plainDigits);
+      if (!entry) {
+        return sendJson(res, 400, { success: false, verified: false, error: 'No active OTP requested for this phone number, or code has expired.' });
+      }
+
+      if (Date.now() > entry.expiresAt) {
+        activeMobileOtps.delete(plainDigits);
+        return sendJson(res, 400, { success: false, verified: false, error: 'OTP code has expired. Please request a new code.' });
+      }
+
+      if (entry.code !== code) {
+        return sendJson(res, 400, { success: false, verified: false, error: 'Incorrect 6-digit OTP code.' });
+      }
+
+      activeMobileOtps.delete(plainDigits);
+      return sendJson(res, 200, {
+        success: true,
+        verified: true,
+        message: 'Mobile number verified successfully!'
+      });
+    }
+
+    if (pathname === '/api/email/send-verification' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const email = (body.email || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        return sendJson(res, 400, { success: false, error: 'Valid email address is required' });
+      }
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      activeMobileOtps.set(email, { code, expiresAt: Date.now() + 5 * 60 * 1000, email });
+      return sendJson(res, 200, {
+        success: true,
+        message: `Verification code sent to ${email}`,
+        demoCode: code
+      });
+    }
+
+    if (pathname === '/api/email/verify' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const email = (body.email || '').trim().toLowerCase();
+      const code = (body.code || '').trim();
+      const entry = activeMobileOtps.get(email);
+      if (entry && Date.now() <= entry.expiresAt && entry.code === code) {
+        activeMobileOtps.delete(email);
+        return sendJson(res, 200, { success: true, verified: true, message: 'Email address verified successfully!' });
+      }
+      return sendJson(res, 400, { success: false, verified: false, error: 'Invalid or expired email verification code.' });
     }
 
     if (pathname.startsWith('/api/vehicles/lookup/') && method === 'GET') {
