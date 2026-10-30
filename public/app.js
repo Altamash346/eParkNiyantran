@@ -172,7 +172,11 @@ function handleRoute() {
       grid: 'Live Parking Grid',
       sessions: 'Active Parking Sessions',
       reports: 'Reports & Revenue Analytics',
+      tariff: 'Tariff Rates & Slabs',
       exceptions: 'Exceptions & Bans Queue',
+      feedback: 'Citizen Feedback & Grievances',
+      sms: 'Citizen SMS & WhatsApp Center',
+      iot: 'Gate Sensors & IoT Hardware',
       settings: 'System Settings'
     };
     breadcrumb.textContent = titles[route] || 'Dashboard';
@@ -186,7 +190,9 @@ function handleRoute() {
   const activePanel = document.getElementById(`view-${route}`);
   if (activePanel) {
     activePanel.classList.remove('hidden');
-  } else {
+  }
+  if (route === 'feedback' && typeof loadComplaints === 'function') loadComplaints();
+  if (route === 'sms' && typeof loadNotifications === 'function') loadNotifications(); else {
     document.getElementById('view-dashboard')?.classList.remove('hidden');
   }
 
@@ -1133,6 +1139,9 @@ async function submitEntryRegistration() {
 
     if (data.success && data.session) {
       showToast('Registration Confirmed', `Vehicle ${payload.plate} assigned to bay ${payload.slot_id}`, 'success');
+      if (data.bill && typeof showBillModal === 'function') {
+        showBillModal(data.bill);
+      }
       
       // Show printable receipt modal
       document.getElementById('rcptSessionId').textContent = data.session.session_id;
@@ -1531,3 +1540,749 @@ function showToast(title, message, type = 'info') {
     setTimeout(() => toast.remove(), 250);
   }, 4000);
 }
+
+
+// Globals for integrated municipal modules
+let currentOperator = "OP-ATTENDANT-01";
+let currentGeneratedBill = null;
+
+
+
+// ==========================================================================
+// INTEGRATED MUNICIPAL PARKING FEATURES: BILLING, FEEDBACK, SMS & IOT
+// ==========================================================================
+
+function initComplaintWorkflow() {
+  const openBtn = document.getElementById('openComplaintModalBtn');
+  const tabNewBtn = document.getElementById('btnTabNewComplaint');
+  const closeBtn = document.getElementById('btnCloseComplaintModal');
+  const cancelBtn = document.getElementById('btnCancelComplaintModal');
+  const form = document.getElementById('complaintForm');
+  const refreshBtn = document.getElementById('btnRefreshComplaints');
+  const filterSelect = document.getElementById('complaintFilterStatus');
+
+  // Interactive 5-Star Rating Widget
+  const starBtns = document.querySelectorAll('.star-rating-btn');
+  const ratingInput = document.getElementById('complaintRating');
+  const feedbackText = document.getElementById('starRatingFeedbackText');
+
+  const ratingLabels = {
+    1: '1/5 (Very Dissatisfied)',
+    2: '2/5 (Needs Improvement)',
+    3: '3/5 (Average Experience)',
+    4: '4/5 (Good Service)',
+    5: '5/5 (Delighted & Smooth)'
+  };
+
+  function setStarRating(val) {
+    if (ratingInput) ratingInput.value = val;
+    starBtns.forEach(btn => {
+      const bRating = Number(btn.getAttribute('data-rating')) || 0;
+      if (bRating <= val) {
+        btn.classList.add('text-amber-400');
+        btn.classList.remove('text-slate-600');
+      } else {
+        btn.classList.remove('text-amber-400');
+        btn.classList.add('text-slate-600');
+      }
+    });
+    if (feedbackText) {
+      feedbackText.textContent = ratingLabels[val] || `${val}/5`;
+    }
+  }
+
+  starBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const val = Number(btn.getAttribute('data-rating')) || 5;
+      setStarRating(val);
+    });
+    btn.addEventListener('mouseenter', () => {
+      const val = Number(btn.getAttribute('data-rating')) || 5;
+      setStarRating(val);
+    });
+  });
+
+  const starContainer = document.getElementById('interactiveStarContainer');
+  if (starContainer) {
+    starContainer.addEventListener('mouseleave', () => {
+      const current = Number(ratingInput?.value) || 5;
+      setStarRating(current);
+    });
+  }
+
+  // Hook up search filter for active sessions
+  const searchSessionsEl = document.getElementById('searchSessionsInput');
+  if (searchSessionsEl && !searchSessionsEl.dataset.initialized) {
+    searchSessionsEl.dataset.initialized = 'true';
+    searchSessionsEl.addEventListener('input', () => loadActiveSessions());
+  }
+
+  if (openBtn) openBtn.addEventListener('click', () => openComplaintModal());
+  if (tabNewBtn) tabNewBtn.addEventListener('click', () => openComplaintModal());
+  if (closeBtn) closeBtn.addEventListener('click', closeComplaintModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeComplaintModal);
+
+  if (refreshBtn) refreshBtn.addEventListener('click', () => loadComplaints());
+  if (filterSelect) filterSelect.addEventListener('change', () => renderComplaintsTable());
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('btnSubmitComplaint');
+      if (submitBtn) submitBtn.disabled = true;
+
+      const payload = {
+        session_id: document.getElementById('complaintSessionId')?.value || null,
+        complainant_name: document.getElementById('complaintName')?.value.trim(),
+        phone: document.getElementById('complaintPhone')?.value.trim(),
+        vehicle_plate: document.getElementById('complaintPlate')?.value.trim() || null,
+        category: document.getElementById('complaintCategory')?.value,
+        rating: Number(document.getElementById('complaintRating')?.value || 5),
+        message: document.getElementById('complaintMessage')?.value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/complaints', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Operator-Id': currentOperator
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ Grievance Registered Successfully!\nTicket ID: ${data.ticket_id}\nAn acknowledgment SMS has been dispatched.`);
+          form.reset();
+          closeComplaintModal();
+
+          appendVirtualPhoneSms(
+            'ePark-CARE',
+            `[eParkNiyantran] Grievance Registered Ref #${data.ticket_id}. Category: ${payload.category}. Our supervisor will review and resolve it promptly.`
+          );
+
+          loadComplaints();
+        } else {
+          alert(`Failed to register complaint: ${data.error || 'Server error'}`);
+        }
+      } catch (err) {
+        console.error('Complaint submit error:', err);
+        alert('Network error submitting feedback');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+}
+
+async function loadComplaints() {
+  try {
+    const res = await fetch('/api/complaints');
+    const data = await res.json();
+    if (!data.success) return;
+
+    complaintsCache = data.complaints || [];
+
+    // Update Summary KPI Cards
+    const s = data.summary || {};
+    const totalEl = document.getElementById('statComplaintTotal');
+    const openEl = document.getElementById('statComplaintOpen');
+    const resolvedEl = document.getElementById('statComplaintResolved');
+    const ratingEl = document.getElementById('statComplaintRating');
+    const badgeEl = document.getElementById('complaintsBadge');
+
+    if (totalEl) totalEl.textContent = s.total ?? complaintsCache.length;
+    if (openEl) openEl.textContent = s.open ?? 0;
+    if (resolvedEl) resolvedEl.textContent = s.resolved ?? 0;
+    if (ratingEl) ratingEl.textContent = s.avgRating ? Number(s.avgRating).toFixed(1) : '5.0';
+    if (badgeEl) badgeEl.textContent = s.open ?? 0;
+
+    renderComplaintsTable();
+  } catch (err) {
+    console.error('Failed to load complaints:', err);
+  }
+}
+
+function renderComplaintsTable() {
+  const tbody = document.getElementById('complaintsTableBody');
+  if (!tbody) return;
+
+  const filter = document.getElementById('complaintFilterStatus')?.value || 'ALL';
+  const filtered = complaintsCache.filter(c => {
+    if (filter === 'OPEN') return c.status === 'OPEN';
+    if (filter === 'RESOLVED') return c.status === 'RESOLVED';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-500">No grievances or feedback records found for this filter.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = '';
+  filtered.forEach(c => {
+    const tr = document.createElement('tr');
+    const isOpen = c.status === 'OPEN';
+    const ratingNum = c.rating || 5;
+    const stars = '★'.repeat(ratingNum) + '☆'.repeat(5 - ratingNum);
+
+    tr.innerHTML = `
+      <td class="p-2.5 font-mono font-bold text-amber-400">${c.ticket_id}</td>
+      <td class="p-2.5">
+        <div class="font-bold text-slate-200">${c.complainant_name}</div>
+        <div class="text-[10px] text-slate-400 font-mono">${c.phone}</div>
+      </td>
+      <td class="p-2.5">
+        ${c.vehicle_plate ? `<span class="px-2 py-0.5 rounded font-mono font-bold text-xs bg-slate-800 border border-slate-700 text-slate-200">${formatPlateDisplay(c.vehicle_plate)}</span>` : '<span class="text-slate-500 italic">None</span>'}
+      </td>
+      <td class="p-2.5">
+        <div class="text-[11px] font-semibold text-blue-400">${c.category.replace(/_/g, ' ')}</div>
+        <div class="text-amber-400 font-mono text-xs">${stars} (${ratingNum}/5)</div>
+      </td>
+      <td class="p-2.5 max-w-[280px]">
+        <div class="text-slate-200 line-clamp-2">${c.message}</div>
+        ${c.resolution_notes ? `<div class="mt-1 text-[10px] text-emerald-400 bg-emerald-950/40 p-1.5 rounded border border-emerald-500/30"><strong>Resolved:</strong> ${c.resolution_notes}</div>` : ''}
+      </td>
+      <td class="p-2.5">
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isOpen ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}">
+          ${c.status}
+        </span>
+      </td>
+      <td class="p-2.5 font-mono text-[10px] text-slate-400">
+        ${new Date(c.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+      </td>
+      <td class="p-2.5 text-right">
+        ${isOpen ? `
+          <button type="button" class="btn-resolve-ticket px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] rounded-lg shadow transition flex items-center space-x-1 ml-auto" data-ticket-id="${c.ticket_id}">
+            <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+            <span>Resolve</span>
+          </button>
+        ` : `
+          <span class="text-[10px] text-slate-500 font-mono">Closed</span>
+        `}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Attach resolve click handlers
+  tbody.querySelectorAll('.btn-resolve-ticket').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const ticketId = btn.getAttribute('data-ticket-id');
+      const note = prompt(`Enter supervisor resolution note for Ticket ${ticketId}:`, 'Grievance investigated and refunded / rectified by supervisor.');
+      if (!note) return;
+
+      try {
+        const res = await fetch(`/api/complaints/${ticketId}/resolve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Operator-Id': currentOperator
+          },
+          body: JSON.stringify({ resolution_notes: note })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ ${data.message}`);
+          appendVirtualPhoneSms(
+            'ePark-CARE',
+            `[eParkNiyantran] Your grievance #${ticketId} has been RESOLVED: ${note}. Thank you!`
+          );
+          loadComplaints();
+          loadReports();
+        } else {
+          alert(`Error resolving complaint: ${data.error}`);
+        }
+      } catch (err) {
+        console.error('Resolve error:', err);
+        alert('Network error resolving complaint');
+      }
+    });
+  });
+
+  initIcons();
+}
+
+function openComplaintModal(prefill = {}) {
+  const modal = document.getElementById('complaintModal');
+  if (!modal) return;
+
+  const sessionInput = document.getElementById('complaintSessionId');
+  const plateInput = document.getElementById('complaintPlate');
+  const catInput = document.getElementById('complaintCategory');
+
+  if (sessionInput) sessionInput.value = prefill.session_id || '';
+  if (plateInput && prefill.vehicle_plate) plateInput.value = prefill.vehicle_plate;
+  if (catInput && prefill.category) catInput.value = prefill.category;
+
+  // Reset rating stars to 5 default
+  const starBtns = document.querySelectorAll('.star-rating-btn');
+  const ratingInput = document.getElementById('complaintRating');
+  const feedbackText = document.getElementById('starRatingFeedbackText');
+  if (ratingInput) ratingInput.value = '5';
+  starBtns.forEach(btn => {
+    btn.classList.add('text-amber-400');
+    btn.classList.remove('text-slate-600');
+  });
+  if (feedbackText) feedbackText.textContent = '5/5 (Delighted & Smooth)';
+
+  modal.classList.remove('hidden');
+  initIcons();
+}
+
+function closeComplaintModal() {
+  const modal = document.getElementById('complaintModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function initBoundaryTestRunner() {
+  document.getElementById('btnRunBoundaryTests').addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/tariff/test-boundary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (!data.success) return;
+
+      const card = document.getElementById('boundaryTestResultsCard');
+      card.classList.remove('hidden');
+
+      const tbody = document.getElementById('boundaryTestTableBody');
+      tbody.innerHTML = '';
+
+      data.results.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = r.passed ? 'hover:bg-slate-900' : 'bg-rose-950/30';
+        tr.innerHTML = `
+          <td class="p-2 font-medium text-white">${r.label}</td>
+          <td class="p-2 font-mono text-slate-400">${r.durationFormatted}</td>
+          <td class="p-2 font-mono font-bold ${r.passed ? 'text-emerald-400' : 'text-rose-400'}">₹${r.calculatedCharge}</td>
+          <td class="p-2 font-mono text-slate-300">₹${r.expectedCharge}</td>
+          <td class="p-2 text-slate-400">${r.tierLabel}</td>
+          <td class="p-2 ${r.appliesBan ? 'text-rose-400 font-bold' : 'text-slate-500'}">${r.appliesBan ? '10-Day Ban' : 'None'}</td>
+          <td class="p-2 text-right">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.passed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">
+              ${r.passed ? 'PASS' : 'FAIL'}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const summaryBadge = document.getElementById('testSummaryStatus');
+      if (data.allPassed) {
+        summaryBadge.textContent = `ALL ${data.totalTests} TESTS PASSING`;
+        summaryBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      } else {
+        summaryBadge.textContent = 'FAILURES DETECTED';
+        summaryBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30';
+      }
+
+    } catch (e) {
+      alert('Error executing boundary tests');
+    }
+  });
+}
+
+function initDirectMessenger() {
+  const presetSelect = document.getElementById('directMsgPreset');
+  const bodyInput = document.getElementById('directMsgBody');
+  const phoneInput = document.getElementById('directMsgPhone');
+  const waBtn = document.getElementById('btnSendDirectWhatsApp');
+  const smsBtn = document.getElementById('btnSendDirectSms');
+  const feedback = document.getElementById('directMsgFeedback');
+
+  if (presetSelect && bodyInput) {
+    presetSelect.addEventListener('change', () => {
+      const v = presetSelect.value;
+      if (v === 'welcome') {
+        bodyInput.value = `[eParkNiyantran] Welcome! Vehicle checked in at Gate 1. Bay: 4W-01. Timings & instant digital bill: ${window.location.origin}/`;
+      } else if (v === 'reminder') {
+        bodyInput.value = `[eParkNiyantran Alert] ⚠️ 5-Min Reminder: Your scheduled parking stay is ending in 5 minutes. Please proceed to the exit to avoid overstay penalty.`;
+      } else if (v === 'receipt') {
+        bodyInput.value = `[eParkNiyantran] ✅ Payment Received! Parking fee settled successfully. Thank you for visiting Market Place.`;
+      } else if (v === 'overdue') {
+        bodyInput.value = `[eParkNiyantran Alert] 🚨 Overdue Notice: Vehicle exceeded scheduled stay. Fine applied per municipal tariff. Clear dues to avoid towing/ban.`;
+      } else if (v === 'custom') {
+        bodyInput.value = '';
+        bodyInput.focus();
+      }
+    });
+  }
+
+  if (waBtn) {
+    waBtn.addEventListener('click', () => {
+      const rawPhone = phoneInput ? phoneInput.value.trim() : '9823012345';
+      const cleanPhone = rawPhone.replace(/[^0-9]/g, '').slice(-10);
+      const text = bodyInput ? bodyInput.value.trim() : '';
+      if (!cleanPhone) {
+        alert('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      const url = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    });
+  }
+
+  if (smsBtn) {
+    smsBtn.addEventListener('click', async () => {
+      const rawPhone = phoneInput ? phoneInput.value.trim() : '9823012345';
+      const text = bodyInput ? bodyInput.value.trim() : '';
+      if (!text) {
+        alert('Please enter message text to send.');
+        return;
+      }
+      if (feedback) {
+        feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-400 block';
+        feedback.textContent = 'Dispatching message via SMS gateway...';
+      }
+
+      try {
+        const res = await fetch('/api/sms/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: rawPhone, message: text })
+        });
+        const data = await res.json();
+        if (feedback) {
+          if (data.result && data.result.status === 'SENT') {
+            feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 block';
+            feedback.textContent = `✅ Live carrier SMS dispatched to ${rawPhone} via ${data.result.provider}!`;
+          } else {
+            feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 block';
+            feedback.textContent = `Delivered to Sandbox log. To send real carrier SMS directly, add your free Fast2SMS API key in the Gateways tab, or use 'Send via WhatsApp'!`;
+          }
+        }
+        appendVirtualPhoneSms('Citizen SMS', text);
+        loadNotifications();
+      } catch (e) {
+        if (feedback) {
+          feedback.className = 'p-2 rounded-lg text-xs font-semibold bg-rose-500/20 text-rose-400 block';
+          feedback.textContent = `Dispatch Error: ${e.message}`;
+        }
+      }
+    });
+  }
+}
+
+function appendVirtualPhoneSms(sender, message) {
+  const screen = document.getElementById('virtualPhoneScreen');
+  const bubble = document.createElement('div');
+  bubble.className = 'sms-bubble';
+  bubble.innerHTML = `
+    <div class="text-[10px] text-blue-400 font-semibold">${sender} • Just Now</div>
+    <div class="mt-1 text-slate-200">${message}</div>
+  `;
+  screen.prepend(bubble);
+}
+
+function initIoTSimulator() {
+  document.getElementById('btnTestGatePulse').addEventListener('click', () => {
+    const btn = document.getElementById('btnTestGatePulse');
+    btn.disabled = true;
+    btn.textContent = 'Gate Pulse Active (Relay ON)...';
+    btn.classList.add('bg-emerald-600', 'text-white');
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = 'Test Gate Pulse (5s)';
+      btn.classList.remove('bg-emerald-600', 'text-white');
+    }, 5000);
+  });
+}
+
+function showBillModal(bill) {
+  if (!bill) return;
+  currentGeneratedBill = bill;
+
+  const modal = document.getElementById('entryBillModal');
+  if (!modal) return;
+
+  const billNoEl = document.getElementById('billModalBillNo');
+  if (billNoEl) billNoEl.textContent = bill.bill_number || ('EPN-BILL-' + (bill.session_id || '').slice(-6));
+
+  const dateEl = document.getElementById('billModalDate');
+  if (dateEl) dateEl.textContent = new Date(bill.generated_at || bill.entry_time || Date.now()).toLocaleDateString('en-IN');
+
+  const plateEl = document.getElementById('billModalPlate');
+  if (plateEl) plateEl.textContent = formatPlateDisplay(bill.vehicle_plate);
+
+  const modelEl = document.getElementById('billModalModel');
+  if (modelEl) modelEl.textContent = bill.make_model || 'Standard Vehicle';
+
+  const ownerEl = document.getElementById('billModalOwner');
+  if (ownerEl) ownerEl.textContent = `${bill.owner_name || 'Registered Driver'} (${bill.phone || '+91 9800000000'})`;
+
+  const slotEl = document.getElementById('billModalSlot');
+  if (slotEl) slotEl.textContent = `${bill.slot_id} (${bill.category === '2W' ? 'Zone A - Two-Wheelers' : 'Zone B - Four-Wheelers'})`;
+
+  const inDate = new Date(bill.entry_time);
+  const outDate = new Date(bill.expected_exit_time || bill.out_time || inDate.getTime() + 3600000);
+
+  const inTimeEl = document.getElementById('billModalInTime');
+  if (inTimeEl) inTimeEl.textContent = inDate.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+
+  const outTimeEl = document.getElementById('billModalOutTime');
+  if (outTimeEl) outTimeEl.textContent = outDate.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+
+  const durEl = document.getElementById('billModalDuration');
+  if (durEl) durEl.textContent = bill.duration_formatted || formatDuration(bill.duration_seconds || 3600);
+
+  const tierEl = document.getElementById('billModalTier');
+  if (tierEl) tierEl.textContent = bill.tier_label || 'Standard Tariff';
+
+  const baseEl = document.getElementById('billModalBaseFee');
+  if (baseEl) baseEl.textContent = `₹${bill.basic_amount !== undefined ? bill.basic_amount : (bill.total_amount || 0)}`;
+
+  const fineEl = document.getElementById('billModalFineFee');
+  if (fineEl) fineEl.textContent = `₹${bill.fine_amount || 0}`;
+
+  const agencyEl = document.getElementById('billModalAgencyShare');
+  if (agencyEl) agencyEl.textContent = `₹${bill.agency_share !== undefined ? bill.agency_share : Math.round((bill.total_amount || 0) * 0.1)}`;
+
+  const facEl = document.getElementById('billModalFacilityShare');
+  if (facEl) facEl.textContent = `₹${bill.facility_share !== undefined ? bill.facility_share : ((bill.total_amount || 0) - Math.round((bill.total_amount || 0) * 0.1))}`;
+
+  const totalEl = document.getElementById('billModalTotalAmount');
+  if (totalEl) totalEl.textContent = `₹${bill.total_amount || 0}`;
+
+  const statusBadge = document.getElementById('billModalPaymentStatus');
+  if (statusBadge) {
+    if (bill.is_prepaid) {
+      statusBadge.textContent = 'PRE-PAID (PAID)';
+      statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+    } else {
+      statusBadge.textContent = 'PAYMENT DUE';
+      statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+    }
+  }
+
+  // Render QR SVG
+  const qrContainer = document.getElementById('billModalQrCode');
+  if (qrContainer) {
+    qrContainer.innerHTML = generateMockQrSvg(bill.upi_string || `upi://pay?pa=eparkniyantran@okhdfcbank&pn=eParkNiyantran&am=${bill.total_amount}&tr=${bill.session_id}`);
+  }
+
+  modal.classList.remove('hidden');
+  initIcons();
+}
+
+function initBillModal() {
+  const modal = document.getElementById('entryBillModal');
+  if (!modal) return;
+
+  const closeBtn = document.getElementById('btnCloseBillModal');
+  const doneBtn = document.getElementById('btnDoneBillModal');
+  const printBtn = document.getElementById('btnPrintBillBtn');
+  const payNowBtn = document.getElementById('btnPayBillNowBtn');
+  const cashPaidBtn = document.getElementById('btnMarkBillCashPaidBtn');
+  const billGrievanceBtn = document.getElementById('btnBillFileGrievance');
+
+  const closeModal = () => modal.classList.add('hidden');
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (doneBtn) doneBtn.addEventListener('click', closeModal);
+
+  if (billGrievanceBtn) {
+    billGrievanceBtn.addEventListener('click', () => {
+      closeModal();
+      openComplaintModal({
+        session_id: currentGeneratedBill ? currentGeneratedBill.session_id : '',
+        vehicle_plate: currentGeneratedBill ? currentGeneratedBill.vehicle_plate : '',
+        category: 'TARIFF_OVERCHARGE'
+      });
+    });
+  }
+
+  const sendWhatsAppBtn = document.getElementById('btnSendBillWhatsApp');
+  const sendSmsGatewayBtn = document.getElementById('btnSendBillSmsGateway');
+  const feedbackBox = document.getElementById('billSmsFeedbackBox');
+
+  if (sendWhatsAppBtn) {
+    sendWhatsAppBtn.addEventListener('click', () => {
+      if (!currentGeneratedBill) return;
+      const b = currentGeneratedBill;
+      const phoneInput = document.getElementById('inputCustomerPhone');
+      const phone = b.phone || (phoneInput ? phoneInput.value : '9823012345');
+      const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+
+      const inStr = new Date(b.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const outStr = new Date(b.expected_exit_time || b.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      const msg = `🚗 *eParkNiyantran - Parking Bill Slip* 🚗\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📄 *Bill No:* ${b.bill_number || ('EPN-' + (b.session_id||'').slice(-6))}\n` +
+        `🚙 *Vehicle:* ${b.vehicle_plate}\n` +
+        `🅿️ *Bay:* ${b.slot_id} (${b.category === '2W' ? '2-Wheeler' : '4-Wheeler'})\n` +
+        `🕒 *In-Time:* ${inStr}\n` +
+        `⏳ *Scheduled Out:* ${outStr}\n` +
+        `💰 *Total Amount:* ₹${b.total_amount} (${b.is_prepaid ? 'PAID ✅' : 'DUE ⚠️'})\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📍 *Location:* Market Place Parking\n` +
+        `ℹ️ Retain this message for fast barrier exit clearance.`;
+
+      const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
+    });
+  }
+
+  if (sendSmsGatewayBtn) {
+    sendSmsGatewayBtn.addEventListener('click', async () => {
+      if (!currentGeneratedBill) return;
+      const b = currentGeneratedBill;
+      const phoneInput = document.getElementById('inputCustomerPhone');
+      const phone = b.phone || (phoneInput ? phoneInput.value : '9823012345');
+
+      if (feedbackBox) {
+        feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-blue-500/15 text-blue-400 block';
+        feedbackBox.textContent = 'Dispatching carrier SMS via gateway...';
+      }
+
+      try {
+        const smsMsg = `[eParkNiyantran] Bill #${b.bill_number || b.session_id} for ${b.vehicle_plate}. Bay: ${b.slot_id}. Amount: ₹${b.total_amount} (${b.is_prepaid ? 'PAID' : 'DUE'}). Retain for exit.`;
+        const res = await fetch('/api/sms/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, message: smsMsg })
+        });
+        const data = await res.json();
+        if (feedbackBox) {
+          if (data.result && data.result.status === 'SENT') {
+            feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-emerald-500/20 text-emerald-400 block';
+            feedbackBox.textContent = `✅ Live message dispatched to ${phone} via ${data.result.provider}!`;
+          } else {
+            feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-amber-500/20 text-amber-300 block';
+            feedbackBox.textContent = `Provider status: ${data.result?.status || 'Sent to sandbox'}. For real SIM delivery, set Fast2SMS API key in Gateways tab or click 'Send on WhatsApp'!`;
+          }
+        }
+        loadNotifications();
+      } catch (e) {
+        if (feedbackBox) {
+          feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-rose-500/20 text-rose-400 block';
+          feedbackBox.textContent = `Failed: ${e.message}`;
+        }
+      }
+    });
+  }
+
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+  if (payNowBtn) {
+    payNowBtn.addEventListener('click', () => {
+      if (currentGeneratedBill && currentGeneratedBill.session_id) {
+        closeModal();
+        openPaymentModal(
+          currentGeneratedBill.session_id,
+          currentGeneratedBill.vehicle_plate,
+          currentGeneratedBill.duration_formatted,
+          currentGeneratedBill.tier_label,
+          currentGeneratedBill.total_amount
+        );
+      }
+    });
+  }
+
+  if (cashPaidBtn) {
+    cashPaidBtn.addEventListener('click', async () => {
+      if (!currentGeneratedBill) return;
+      try {
+        const res = await fetch('/api/payments/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Operator-Id': currentOperator },
+          body: JSON.stringify({
+            session_id: currentGeneratedBill.session_id,
+            method: 'CASH_ATTENDANT',
+            provider_ref: 'CASH-ENTRY-' + Date.now()
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`✅ Advance payment confirmed in cash for ${currentGeneratedBill.vehicle_plate}!\nReceipt Ref: ${data.transaction_ref}`);
+          currentGeneratedBill.is_prepaid = 1;
+          showBillModal(currentGeneratedBill);
+          loadSlots();
+          loadActiveSessions();
+          loadReports();
+        }
+      } catch (e) {
+        alert('Error recording cash payment');
+      }
+    });
+  }
+}
+
+function generateMockQrSvg(upiString) {
+  return `
+    <svg width="120" height="120" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+      <rect width="140" height="140" fill="white"/>
+      <rect x="10" y="10" width="35" height="35" fill="black"/>
+      <rect x="15" y="15" width="25" height="25" fill="white"/>
+      <rect x="20" y="20" width="15" height="15" fill="black"/>
+      <rect x="95" y="10" width="35" height="35" fill="black"/>
+      <rect x="100" y="15" width="25" height="25" fill="white"/>
+      <rect x="105" y="20" width="15" height="15" fill="black"/>
+      <rect x="10" y="95" width="35" height="35" fill="black"/>
+      <rect x="15" y="100" width="25" height="25" fill="white"/>
+      <rect x="20" y="105" width="15" height="15" fill="black"/>
+      <rect x="55" y="15" width="10" height="25" fill="black"/>
+      <rect x="70" y="25" width="15" height="10" fill="black"/>
+      <rect x="55" y="55" width="30" height="30" fill="#2563eb"/>
+      <rect x="62" y="62" width="16" height="16" fill="white"/>
+      <text x="70" y="74" font-size="9" font-weight="bold" text-anchor="middle" fill="#2563eb">₹</text>
+      <rect x="15" y="55" width="20" height="10" fill="black"/>
+      <rect x="15" y="75" width="30" height="10" fill="black"/>
+      <rect x="95" y="55" width="30" height="10" fill="black"/>
+      <rect x="105" y="75" width="20" height="10" fill="black"/>
+      <rect x="55" y="95" width="15" height="25" fill="black"/>
+      <rect x="75" y="110" width="25" height="15" fill="black"/>
+      <rect x="110" y="105" width="20" height="20" fill="black"/>
+    </svg>
+  `;
+}
+
+async function loadNotifications() {
+  try {
+    const res = await fetch('/api/notifications');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const tbody = document.getElementById('smsTableBody');
+    tbody.innerHTML = '';
+    
+    if (data.notifications.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No dispatched SMS messages yet.</td></tr>';
+      return;
+    }
+
+    data.notifications.forEach(n => {
+      const cleanPhone = (n.recipient_phone || '').replace(/[^0-9]/g, '').slice(-10);
+      const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(n.message_body)}`;
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-900/60 dark:hover:bg-slate-900 transition';
+      tr.innerHTML = `
+        <td class="p-2 font-mono text-[11px] text-slate-400">${n.notification_id}</td>
+        <td class="p-2 font-mono text-slate-800 dark:text-white font-medium">${n.recipient_phone}</td>
+        <td class="p-2 font-mono text-[10px] text-blue-500 dark:text-blue-400">${n.dlt_template_id}</td>
+        <td class="p-2 text-slate-700 dark:text-slate-300 max-w-xs truncate" title="${n.message_body}">${n.message_body}</td>
+        <td class="p-2"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">${n.status}</span></td>
+        <td class="p-2 text-right font-mono text-[10px] text-slate-500 dark:text-slate-400">${new Date(n.sent_time || n.scheduled_time).toLocaleTimeString()}</td>
+        <td class="p-2 text-center">
+          <a href="${waUrl}" target="_blank" title="Send direct to customer via WhatsApp" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] transition border border-emerald-500/30">
+            <span>📱 WhatsApp</span>
+          </a>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error('Failed to load notifications:', err);
+  }
+}
+
