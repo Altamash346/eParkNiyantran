@@ -1386,6 +1386,10 @@ async function submitExitPayment() {
 
 // --- Exceptions & Bans Management ---
 function initExceptionsActions() {
+  document.getElementById('drawerClearanceBtn')?.addEventListener('click', () => {
+    document.getElementById('btnRunMidnightClearance')?.click();
+  });
+
   document.getElementById('btnApplyOverdueFine')?.addEventListener('click', async () => {
     try {
       const res = await fetch('/api/exceptions/apply-daily-fine', { method: 'POST' });
