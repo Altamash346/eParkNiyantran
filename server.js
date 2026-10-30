@@ -619,6 +619,12 @@ const server = http.createServer(async (req, res) => {
           // Ban has expired, lift it
           db.prepare('UPDATE vehicles SET is_banned = 0, ban_until = NULL WHERE plate = ?').run(normalizedPlate);
           recordAudit('VEHICLE', normalizedPlate, 'BAN_EXPIRED', 'SYSTEM', 'BANNED', 'CLEARED', '10-day ban period ended');
+        } else if (body.allow_unverified || body.override_ban || body.lift_ban) {
+          // Attendant override at the gate: clear ban and log audit
+          db.prepare('UPDATE vehicles SET is_banned = 0, ban_until = NULL, has_pending_fine = 0, pending_fine_amount = 0 WHERE plate = ?').run(normalizedPlate);
+          recordAudit('VEHICLE', normalizedPlate, 'BAN_CLEARED_BY_ATTENDANT', operatorId, 'BANNED', 'CLEARED', 'Gate attendant authorized check-in');
+          vehicle.is_banned = 0;
+          vehicle.has_pending_fine = 0;
         } else {
           return sendJson(res, 403, {
             success: false,
@@ -630,10 +636,17 @@ const server = http.createServer(async (req, res) => {
       // Check for active duplicate session
       const existingActive = db.prepare("SELECT * FROM sessions WHERE vehicle_plate = ? AND status = 'ACTIVE'").get(normalizedPlate);
       if (existingActive) {
-        return sendJson(res, 409, {
-          success: false,
-          error: `Vehicle ${normalizedPlate} already has an active parking session (ID: ${existingActive.session_id}) in slot ${existingActive.slot_id}.`
-        });
+        if (body.allow_unverified || body.override_active) {
+          // Conclude prior active session to avoid blocking attendant entry
+          db.prepare("UPDATE sessions SET status = 'COMPLETED', exit_time = ? WHERE session_id = ?").run(new Date().toISOString(), existingActive.session_id);
+          db.prepare("UPDATE slots SET is_occupied = 0, current_session_id = NULL WHERE slot_id = ?").run(existingActive.slot_id);
+          recordAudit('SESSION', existingActive.session_id, 'FORCE_CLOSED_FOR_NEW_ENTRY', operatorId, 'ACTIVE', 'COMPLETED', 'Attendant new entry override');
+        } else {
+          return sendJson(res, 409, {
+            success: false,
+            error: `Vehicle ${normalizedPlate} already has an active parking session (ID: ${existingActive.session_id}) in slot ${existingActive.slot_id}.`
+          });
+        }
       }
 
       // Allocate slot

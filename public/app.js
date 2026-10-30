@@ -956,7 +956,8 @@ function initEntryWorkflow() {
   });
 
   // Final Entry Submission
-  document.getElementById('btnSubmitEntry')?.addEventListener('click', submitEntryRegistration);
+  document.getElementById('btnSubmitEntry')?.addEventListener('click', () => submitEntryRegistration(false));
+  document.getElementById('btnConfirmAndWhatsApp')?.addEventListener('click', () => submitEntryRegistration(true));
 }
 
 function setEntryStep(stepNum) {
@@ -1161,23 +1162,30 @@ function selectEntrySlot(slotId) {
   showToast('Bay Selected', `Allocated slot ${slotId}`, 'info');
 }
 
-async function submitEntryRegistration() {
+async function submitEntryRegistration(autoSendWhatsApp = false) {
   const submitBtn = document.getElementById('btnSubmitEntry');
+  const waBtn = document.getElementById('btnConfirmAndWhatsApp');
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Committing...</span>';
+    submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Generating Bill...</span>';
     initIcons();
   }
+  if (waBtn) {
+    waBtn.disabled = true;
+  }
 
+  const driverPhone = document.getElementById('entryDriverPhone')?.value.trim() || state.entryWizard.driverPhone || '9823012345';
   const payload = {
     plate: state.entryWizard.plate,
     category: state.entryWizard.category,
     parking_slot: state.entryWizard.selectedSlot,
     slot_id: state.entryWizard.selectedSlot,
-    driverPhone: document.getElementById('entryDriverPhone')?.value.trim() || state.entryWizard.driverPhone,
+    driverPhone: driverPhone,
     driverEmail: document.getElementById('entryDriverEmail')?.value.trim() || state.entryWizard.driverEmail,
     evidenceImage: state.entryWizard.evidenceDataUrl || DEFAULT_CAR_SVG,
-    allow_unverified: true
+    allow_unverified: true,
+    override_active: true,
+    override_ban: true
   };
 
   try {
@@ -1189,38 +1197,29 @@ async function submitEntryRegistration() {
     const data = await res.json();
 
     if (data.success && data.session) {
-      showToast('Registration Confirmed', `Vehicle ${payload.plate} assigned to bay ${payload.slot_id}`, 'success');
+      showToast('Bill Generated', `Official bill created for ${payload.plate} in bay ${payload.slot_id}`, 'success');
+      
+      // Open the comprehensive Official Bill Modal with fare breakdown & WhatsApp button
       if (data.bill && typeof showBillModal === 'function') {
         showBillModal(data.bill);
-      }
-      
-      // Show printable receipt modal
-      document.getElementById('rcptSessionId').textContent = data.session.session_id;
-      document.getElementById('rcptPlate').textContent = data.session.vehicle_plate;
-      document.getElementById('rcptSlot').textContent = data.session.slot_id;
-      document.getElementById('rcptEntryTime').textContent = new Date(data.session.entry_time).toLocaleTimeString('en-IN');
-
-      const btnWhatsApp = document.getElementById('btnReceiptWhatsApp');
-      if (btnWhatsApp) {
-        btnWhatsApp.onclick = () => {
-          const rawPhone = (payload.driverPhone || '').replace(/[^0-9]/g, '');
-          const cleanPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone;
-          const msg = `🚗 *eParkNiyantran Official Parking Slip*\n` +
-            `Pass ID: ${data.session.session_id}\n` +
-            `Vehicle Plate: ${data.session.vehicle_plate}\n` +
-            `Allocated Bay: ${data.session.slot_id}\n` +
-            `Entry Time: ${new Date(data.session.entry_time).toLocaleTimeString('en-IN')}\n` +
-            `Status: ACTIVE (In Bay)\n\n` +
-            `_Thank you for parking with eParkNiyantran._`;
-          window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
-        };
+      } else {
+        // Fallback pass modal
+        document.getElementById('rcptSessionId').textContent = data.session.session_id;
+        document.getElementById('rcptPlate').textContent = data.session.vehicle_plate;
+        document.getElementById('rcptSlot').textContent = data.session.slot_id;
+        document.getElementById('rcptEntryTime').textContent = new Date(data.session.entry_time).toLocaleTimeString('en-IN');
+        document.getElementById('entryReceiptModal')?.classList.add('open');
       }
 
-      document.getElementById('entryReceiptModal')?.classList.add('open');
+      // If user clicked "Confirm & Send on WhatsApp", trigger WhatsApp immediately
+      if (autoSendWhatsApp) {
+        setTimeout(() => {
+          document.getElementById('btnSendBillWhatsApp')?.click();
+        }, 350);
+      }
 
-      // Refresh slots and sessions
-      loadSlots();
-      loadActiveSessions();
+      // Refresh slots, grid, and active sessions
+      await Promise.all([loadSlots(), loadActiveSessions(), loadReports()]);
       setEntryStep(1);
     } else {
       showToast('Registration Error', data.error || 'Failed to complete registration', 'error');
@@ -1230,9 +1229,12 @@ async function submitEntryRegistration() {
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i><span>Confirm Entry & Print Slip</span>';
-      initIcons();
+      submitBtn.innerHTML = '<i data-lucide="receipt" class="w-4 h-4"></i><span>Confirm &amp; Generate Bill</span>';
     }
+    if (waBtn) {
+      waBtn.disabled = false;
+    }
+    initIcons();
   }
 }
 
@@ -2216,9 +2218,9 @@ function initBillModal() {
     sendWhatsAppBtn.addEventListener('click', () => {
       if (!currentGeneratedBill) return;
       const b = currentGeneratedBill;
-      const phoneInput = document.getElementById('inputCustomerPhone');
-      const phone = b.phone || (phoneInput ? phoneInput.value : '9823012345');
-      const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+      const rawPhone = b.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard.driverPhone || '9823012345';
+      const cleanPhone = rawPhone.replace(/[^0-9]/g, '').slice(-10);
+      const targetPhone = cleanPhone ? '91' + cleanPhone : '919823012345';
 
       const inStr = new Date(b.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       const outStr = new Date(b.expected_exit_time || b.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -2235,8 +2237,9 @@ function initBillModal() {
         `📍 *Location:* Market Place Parking\n` +
         `ℹ️ Retain this message for fast barrier exit clearance.`;
 
-      const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(msg)}`;
       window.open(waUrl, '_blank');
+      showToast('WhatsApp Dispatched', `Opening WhatsApp for +${targetPhone}...`, 'success');
     });
   }
 
@@ -2244,8 +2247,8 @@ function initBillModal() {
     sendSmsGatewayBtn.addEventListener('click', async () => {
       if (!currentGeneratedBill) return;
       const b = currentGeneratedBill;
-      const phoneInput = document.getElementById('inputCustomerPhone');
-      const phone = b.phone || (phoneInput ? phoneInput.value : '9823012345');
+      const rawPhone = b.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard.driverPhone || '9823012345';
+      const phone = rawPhone;
 
       if (feedbackBox) {
         feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-blue-500/15 text-blue-400 block';
