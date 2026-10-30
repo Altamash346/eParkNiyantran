@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>eParkNiyantran — Smart Parking Management System</title>
+  <link rel="icon" type="image/png" href="logo.png">
   
   <!-- Modern Font & Tailwind CSS CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,12 +36,10 @@
       <!-- Left Banner (Branding) -->
       <div class="relative hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-blue-900/60 via-slate-900 to-slate-950 border-r border-slate-800">
         <div class="space-y-4">
-          <div class="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-blue-500/30">
-            P
-          </div>
+          <img src="logo.png" alt="eParkNiyantran Logo" class="w-16 h-16 rounded-full object-cover shadow-xl border-2 border-emerald-500/40">
           <div>
             <h2 class="text-2xl font-bold text-white tracking-tight">eParkNiyantran</h2>
-            <p class="text-xs text-blue-400 font-medium">Smart Parking Management System</p>
+            <p class="text-xs text-emerald-400 font-medium">Smart Parking Management System</p>
           </div>
         </div>
 
@@ -116,9 +115,7 @@
     <!-- REGISTRATION VIEW -->
     <div id="view-register" class="hidden w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl">
       <div class="mb-6">
-        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold mb-3 shadow-md shadow-blue-500/20">
-          <i data-lucide="user-plus" class="w-5 h-5"></i>
-        </div>
+        <img src="logo.png" alt="eParkNiyantran Logo" class="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/40 mb-3 shadow-md">
         <h3 class="text-xl font-bold text-white tracking-tight">Create Attendant Account</h3>
         <p class="text-xs text-slate-400 mt-1">Register as a terminal operator or gate attendant</p>
       </div>
@@ -177,12 +174,10 @@
       <!-- Brand Logo & Header -->
       <div class="h-16 flex items-center justify-between px-5 border-b border-[var(--border-subtle)]">
         <div class="flex items-center space-x-3 overflow-hidden cursor-pointer" onclick="navigateTo('dashboard')">
-          <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-blue-500/25 flex-shrink-0">
-            P
-          </div>
+          <img src="logo.png" alt="eParkNiyantran Logo" class="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-emerald-500/30 shadow-sm">
           <div class="sidebar-brand-text truncate">
             <h1 class="font-bold text-sm text-[var(--text-primary)] tracking-tight leading-none">eParkNiyantran</h1>
-            <span class="text-[10px] text-blue-500 font-medium">Smart Parking SaaS</span>
+            <span class="text-[10px] text-emerald-500 font-medium">Smart Parking SaaS</span>
           </div>
         </div>
         
@@ -277,9 +272,7 @@
       <!-- Sidebar Footer (Attendant Card) -->
       <div class="p-3 border-t border-[var(--border-subtle)]">
         <div class="flex items-center space-x-3 p-2 rounded-xl bg-[var(--bg-surface-elevated)] border border-[var(--border-subtle)] cursor-pointer hover:border-[var(--border-default)] transition" onclick="openProfileModal()">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-            MA
-          </div>
+          <img src="logo.png" alt="Attendant Profile" class="w-8 h-8 rounded-full object-cover border border-emerald-500/30 flex-shrink-0">
           <div class="sidebar-text truncate flex-1 leading-tight">
             <div class="text-xs font-bold text-[var(--text-primary)] truncate">Meet Alshi</div>
             <div class="text-[10px] text-emerald-400 font-medium flex items-center space-x-1">
@@ -354,9 +347,7 @@
           <!-- Attendant Avatar Dropdown Trigger -->
           <div class="relative">
             <button id="btnProfileMenuToggle" class="flex items-center space-x-2 p-1.5 pr-2.5 rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)] transition">
-              <div class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
-                MA
-              </div>
+              <img src="logo.png" alt="Meet Alshi" class="w-7 h-7 rounded-full object-cover border border-emerald-500/30 flex-shrink-0">
               <div class="text-left hidden lg:block leading-none">
                 <span class="text-xs font-semibold text-[var(--text-primary)] block">Meet Alshi</span>
                 <span class="text-[9px] text-[var(--text-muted)]">Attendant</span>
@@ -1806,9 +1797,7 @@
   <div id="entryReceiptModal" class="modal-backdrop">
     <div class="modal-card max-w-sm">
       <div class="p-6 text-center space-y-4">
-        <div class="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-500 mx-auto flex items-center justify-center">
-          <i data-lucide="parking-circle" class="w-7 h-7"></i>
-        </div>
+        <img src="logo.png" alt="eParkNiyantran" class="w-14 h-14 rounded-full mx-auto object-cover border-2 border-emerald-500/30 shadow-md">
         <div>
           <h3 class="text-lg font-bold text-[var(--text-primary)]">eParkNiyantran</h3>
           <p class="text-xs text-[var(--text-muted)]">Official Campus Parking Entry Pass</p>
@@ -1852,9 +1841,7 @@
         </div>
 
         <div class="flex items-center space-x-4">
-          <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg shadow-lg">
-            MA
-          </div>
+          <img src="logo.png" alt="Meet Alshi" class="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/40 shadow-xl flex-shrink-0">
           <div>
             <h4 class="font-bold text-base text-[var(--text-primary)]">Meet Alshi</h4>
             <p class="text-xs text-[var(--text-muted)]">meetalshi19@gmail.com</p>
@@ -1908,7 +1895,7 @@
         
         <!-- Header Info -->
         <div class="text-center pb-3 border-b border-dashed border-slate-700 flex flex-col items-center justify-center">
-          <img src="logo.svg" alt="eParkNiyantran Logo" class="w-12 h-12 mb-1.5 rounded-xl shadow-md">
+          <img src="logo.png" alt="eParkNiyantran Logo" class="w-16 h-16 mb-2 rounded-full object-cover border-2 border-emerald-500/40 shadow-md">
           <div class="text-lg font-black tracking-tight text-white flex items-center justify-center gap-1">
             <span class="text-orange-500">ePark</span><span>Niyantran</span>
           </div>
