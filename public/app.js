@@ -1175,18 +1175,32 @@ async function submitEntryRegistration(autoSendWhatsApp = false) {
   }
 
   const driverPhone = document.getElementById('entryDriverPhone')?.value.trim() || state.entryWizard.driverPhone || '9823012345';
+  const ownerName = document.getElementById('entryOwnerName')?.value.trim() || state.entryWizard.ownerName || 'Registered Driver';
+  const makeModel = document.getElementById('entryMakeModel')?.value.trim() || state.entryWizard.makeModel || 'Standard Vehicle';
+
   const payload = {
     plate: state.entryWizard.plate,
     category: state.entryWizard.category,
     parking_slot: state.entryWizard.selectedSlot,
     slot_id: state.entryWizard.selectedSlot,
+    phone: driverPhone,
     driverPhone: driverPhone,
+    owner_name: ownerName,
+    make_model: makeModel,
     driverEmail: document.getElementById('entryDriverEmail')?.value.trim() || state.entryWizard.driverEmail,
     evidenceImage: state.entryWizard.evidenceDataUrl || DEFAULT_CAR_SVG,
     allow_unverified: true,
     override_active: true,
     override_ban: true
   };
+
+  // Pre-open blank tab synchronously to prevent popup blocker when user chose WhatsApp
+  let waWindow = null;
+  if (autoSendWhatsApp) {
+    try {
+      waWindow = window.open('about:blank', '_blank');
+    } catch (_) {}
+  }
 
   try {
     const res = await fetch('/api/sessions/entry', {
@@ -1211,20 +1225,30 @@ async function submitEntryRegistration(autoSendWhatsApp = false) {
         document.getElementById('entryReceiptModal')?.classList.add('open');
       }
 
-      // If user clicked "Confirm & Send on WhatsApp", trigger WhatsApp immediately
-      if (autoSendWhatsApp) {
-        setTimeout(() => {
-          document.getElementById('btnSendBillWhatsApp')?.click();
-        }, 350);
+      // If user clicked "Confirm & Send on WhatsApp", redirect the pre-opened tab to WhatsApp API
+      if (autoSendWhatsApp && data.bill) {
+        const cleanPhone = (data.bill.phone || driverPhone).replace(/[^0-9]/g, '').slice(-10) || '9823012345';
+        const billMsg = typeof generateBillWhatsAppText === 'function' ? generateBillWhatsAppText(data.bill) : `Bill for ${data.bill.vehicle_plate}`;
+        const waUrl = `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(billMsg)}`;
+        if (waWindow && !waWindow.closed) {
+          waWindow.location.href = waUrl;
+        } else {
+          window.open(waUrl, '_blank');
+        }
+        appendVirtualPhoneSms('ePark-BILL SLIP', billMsg.replace(/\n/g, '<br>'));
+      } else if (waWindow && !waWindow.closed) {
+        waWindow.close();
       }
 
       // Refresh slots, grid, and active sessions
       await Promise.all([loadSlots(), loadActiveSessions(), loadReports()]);
       setEntryStep(1);
     } else {
+      if (waWindow && !waWindow.closed) waWindow.close();
       showToast('Registration Error', data.error || 'Failed to complete registration', 'error');
     }
   } catch (err) {
+    if (waWindow && !waWindow.closed) waWindow.close();
     showToast('Network Error', err.message, 'error');
   } finally {
     if (submitBtn) {
@@ -2180,8 +2204,66 @@ function showBillModal(bill) {
     qrContainer.innerHTML = generateMockQrSvg(bill.upi_string || `upi://pay?pa=eparkniyantran@okhdfcbank&pn=eParkNiyantran&am=${bill.total_amount}&tr=${bill.session_id}`);
   }
 
+  // Pre-fill Driver Mobile for 1-Click Dispatch
+  const targetPhoneInput = document.getElementById('billModalTargetPhone');
+  if (targetPhoneInput) {
+    const rawP = bill.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard?.driverPhone || '';
+    const cleanDigits = rawP.replace(/[^0-9]/g, '').slice(-10);
+    targetPhoneInput.value = cleanDigits || '9823012345';
+  }
+
+  const feedbackBox = document.getElementById('billSmsFeedbackBox');
+  if (feedbackBox) {
+    feedbackBox.className = 'hidden p-2 rounded-lg text-xs font-semibold text-center';
+    feedbackBox.textContent = '';
+  }
+
   modal.classList.remove('hidden');
   initIcons();
+}
+
+function generateBillWhatsAppText(b) {
+  if (!b) return '';
+  const inDate = new Date(b.entry_time || Date.now());
+  const inStr = inDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const inDateStr = inDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const outDate = new Date(b.expected_exit_time || b.out_time || inDate.getTime() + 3600000);
+  const outStr = outDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const billNum = b.bill_number || ('EPN-BILL-' + (b.session_id || '').slice(-6));
+  const categoryLabel = b.category === '2W' ? 'Two-Wheeler (2W)' : 'Four-Wheeler (4W)';
+  const zoneLabel = b.category === '2W' ? 'Zone A - Two-Wheelers' : 'Zone B - Four-Wheelers';
+  const durLabel = b.duration_formatted || formatDuration(b.duration_seconds || 3600);
+  const baseFee = b.basic_amount !== undefined ? b.basic_amount : (b.total_amount || 0);
+  const fineFee = b.fine_amount || 0;
+  const agencySplit = b.agency_share !== undefined ? b.agency_share : Math.round((b.total_amount || 0) * 0.1);
+  const facilitySplit = b.facility_share !== undefined ? b.facility_share : ((b.total_amount || 0) - agencySplit);
+  const totalAmount = b.total_amount || 0;
+  const payStatus = b.is_prepaid ? 'PAID ✅' : 'PAYMENT DUE ⚠️';
+  const host = window.location.origin;
+  const payLink = `${host}/pay/${b.session_id}`;
+
+  return `🧾 *eParkNiyantran - Smart Parking Official Bill* 🧾\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `📄 *Bill / Slip No:* ${billNum}\n` +
+    `🚗 *Vehicle No:* ${b.vehicle_plate} (${categoryLabel})\n` +
+    `👤 *Driver / Owner:* ${b.owner_name || 'Valued Citizen'}\n` +
+    `🅿️ *Allocated Bay:* ${b.slot_id} (${zoneLabel})\n` +
+    `📅 *Date:* ${inDateStr}\n` +
+    `🕒 *Check-In Time:* ${inStr}\n` +
+    `⏳ *Valid Till (Scheduled):* ${outStr}\n` +
+    `⏱️ *Planned Duration:* ${durLabel}\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `💳 *Base Parking Fee:* ₹${baseFee} (${b.tier_label || 'Standard Tariff'})\n` +
+    (fineFee > 0 ? `⚠️ *Pending Penalty / Fine:* ₹${fineFee}\n` : '') +
+    `🏛️ *Municipal Share (90%):* ₹${facilitySplit}\n` +
+    `🏢 *Agency Share (10%):* ₹${agencySplit}\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `💰 *TOTAL AMOUNT:* ₹${totalAmount} (${payStatus})\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `🔗 *View Live Digital Slip & Pay Online:*\n${payLink}\n\n` +
+    `📍 *Location:* Pune Market Place Parking\n` +
+    `ℹ️ *Retain this digital slip to present at the gate barrier sensor upon exit.*\n` +
+    `📞 *Helpdesk & Support:* +91 98230 12345`;
 }
 
 function initBillModal() {
@@ -2216,30 +2298,36 @@ function initBillModal() {
 
   if (sendWhatsAppBtn) {
     sendWhatsAppBtn.addEventListener('click', () => {
-      if (!currentGeneratedBill) return;
+      if (!currentGeneratedBill) {
+        showToast('No Bill Found', 'Please complete entry registration first', 'warning');
+        return;
+      }
       const b = currentGeneratedBill;
-      const rawPhone = b.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard.driverPhone || '9823012345';
-      const cleanPhone = rawPhone.replace(/[^0-9]/g, '').slice(-10);
-      const targetPhone = cleanPhone ? '91' + cleanPhone : '919823012345';
+      const targetPhoneInput = document.getElementById('billModalTargetPhone');
+      const enteredPhone = (targetPhoneInput?.value || '').trim() || b.phone || '9823012345';
+      const cleanDigits = enteredPhone.replace(/[^0-9]/g, '').slice(-10);
 
-      const inStr = new Date(b.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      const outStr = new Date(b.expected_exit_time || b.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      if (cleanDigits.length !== 10) {
+        showToast('Invalid Mobile Number', 'Please enter a 10-digit mobile number in the box above.', 'warning');
+        targetPhoneInput?.focus();
+        return;
+      }
 
-      const msg = `🚗 *eParkNiyantran - Parking Bill Slip* 🚗\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📄 *Bill No:* ${b.bill_number || ('EPN-' + (b.session_id||'').slice(-6))}\n` +
-        `🚙 *Vehicle:* ${b.vehicle_plate}\n` +
-        `🅿️ *Bay:* ${b.slot_id} (${b.category === '2W' ? '2-Wheeler' : '4-Wheeler'})\n` +
-        `🕒 *In-Time:* ${inStr}\n` +
-        `⏳ *Scheduled Out:* ${outStr}\n` +
-        `💰 *Total Amount:* ₹${b.total_amount} (${b.is_prepaid ? 'PAID ✅' : 'DUE ⚠️'})\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📍 *Location:* Market Place Parking\n` +
-        `ℹ️ Retain this message for fast barrier exit clearance.`;
+      const targetPhone = '91' + cleanDigits;
+      const billMsg = generateBillWhatsAppText(b);
+      const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(billMsg)}`;
 
-      const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(msg)}`;
+      // Open WhatsApp chat directly with target mobile number
       window.open(waUrl, '_blank');
+
+      // Feedback & mirror to on-screen virtual smartphone simulator
       showToast('WhatsApp Dispatched', `Opening WhatsApp for +${targetPhone}...`, 'success');
+      appendVirtualPhoneSms('ePark-BILL SLIP', billMsg.replace(/\n/g, '<br>'));
+
+      if (feedbackBox) {
+        feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-emerald-500/20 text-emerald-400 block';
+        feedbackBox.textContent = `✅ Bill Slip opened in WhatsApp for +${targetPhone}!`;
+      }
     });
   }
 
@@ -2247,29 +2335,41 @@ function initBillModal() {
     sendSmsGatewayBtn.addEventListener('click', async () => {
       if (!currentGeneratedBill) return;
       const b = currentGeneratedBill;
-      const rawPhone = b.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard.driverPhone || '9823012345';
-      const phone = rawPhone;
+      const targetPhoneInput = document.getElementById('billModalTargetPhone');
+      const enteredPhone = (targetPhoneInput?.value || '').trim() || b.phone || '9823012345';
+      const cleanDigits = enteredPhone.replace(/[^0-9]/g, '').slice(-10);
+
+      if (cleanDigits.length !== 10) {
+        showToast('Invalid Mobile Number', 'Please enter a valid 10-digit mobile number.', 'warning');
+        targetPhoneInput?.focus();
+        return;
+      }
 
       if (feedbackBox) {
         feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-blue-500/15 text-blue-400 block';
-        feedbackBox.textContent = 'Dispatching carrier SMS via gateway...';
+        feedbackBox.textContent = `Dispatching carrier SMS to +91 ${cleanDigits}...`;
       }
 
+      const host = window.location.origin;
+      const smsMsg = `[eParkNiyantran] Bill #${b.bill_number || b.session_id} for ${b.vehicle_plate}. Bay: ${b.slot_id}. Amount: ₹${b.total_amount} (${b.is_prepaid ? 'PAID' : 'DUE'}). View Slip: ${host}/pay/${b.session_id}`;
+
       try {
-        const smsMsg = `[eParkNiyantran] Bill #${b.bill_number || b.session_id} for ${b.vehicle_plate}. Bay: ${b.slot_id}. Amount: ₹${b.total_amount} (${b.is_prepaid ? 'PAID' : 'DUE'}). Retain for exit.`;
         const res = await fetch('/api/sms/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, message: smsMsg })
+          body: JSON.stringify({ phone: cleanDigits, message: smsMsg })
         });
         const data = await res.json();
+        appendVirtualPhoneSms('ePark-BILL SMS', smsMsg);
+
         if (feedbackBox) {
           if (data.result && data.result.status === 'SENT') {
             feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-emerald-500/20 text-emerald-400 block';
-            feedbackBox.textContent = `✅ Live message dispatched to ${phone} via ${data.result.provider}!`;
+            feedbackBox.textContent = `✅ SMS dispatched to +91 ${cleanDigits} via ${data.result.provider}!`;
           } else {
+            const reason = data.result?.failure_reason || 'Carrier gateway notice';
             feedbackBox.className = 'p-2 rounded-lg text-xs font-semibold text-center bg-amber-500/20 text-amber-300 block';
-            feedbackBox.textContent = `Provider status: ${data.result?.status || 'Sent to sandbox'}. For real SIM delivery, set Fast2SMS API key in Gateways tab or click 'Send on WhatsApp'!`;
+            feedbackBox.textContent = `${reason}`;
           }
         }
         loadNotifications();

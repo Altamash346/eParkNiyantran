@@ -266,7 +266,7 @@ const server = http.createServer(async (req, res) => {
       const body = await parseRequestBody(req);
       const phone = body.phone || '+91 98230 12345';
       const msg = body.message || '[eParkNiyantran Test] SMS Gateway connection verified successfully!';
-      const result = await sendSmsViaGateway('TEST-SESSION', phone, 'TEST_ALERT', msg);
+      const result = await sendSmsViaGateway('SMS-DISPATCH-' + Date.now(), phone, 'ENTRY_WELCOME', msg);
       return sendJson(res, 200, { success: true, result });
     }
 
@@ -575,8 +575,8 @@ const server = http.createServer(async (req, res) => {
       if (!vehicle) {
         const vData = vahanCheck.data || {};
         const assignedCategory = body.category || vData.category || '4W';
-        const assignedOwner = body.owner_name || vData.owner || 'Citizen / Driver';
-        const assignedPhone = body.phone || vData.phone || '+91 9800000000';
+        const assignedOwner = body.owner_name || body.driverName || vData.owner || 'Citizen / Driver';
+        const assignedPhone = body.phone || body.driverPhone || vData.phone || '+91 9800000000';
         const assignedModel = body.make_model || vData.makeModel || 'Standard Vehicle';
         const assignedColor = vData.color || 'Standard';
 
@@ -600,7 +600,9 @@ const server = http.createServer(async (req, res) => {
         vehicle = db.prepare('SELECT * FROM vehicles WHERE plate = ?').get(normalizedPlate);
       } else {
         // Vehicle already existed: update phone, owner, make/model if attendant entered fresh details
-        if (body.phone || body.owner_name || body.make_model || body.category) {
+        const incomingPhone = body.phone || body.driverPhone;
+        const incomingOwner = body.owner_name || body.driverName;
+        if (incomingPhone || incomingOwner || body.make_model || body.category) {
           db.prepare(`
             UPDATE vehicles
             SET phone = COALESCE(?, phone),
@@ -608,7 +610,7 @@ const server = http.createServer(async (req, res) => {
                 make_model = COALESCE(?, make_model),
                 category = COALESCE(?, category)
             WHERE plate = ?
-          `).run(body.phone || null, body.owner_name || null, body.make_model || null, body.category || null, normalizedPlate);
+          `).run(incomingPhone || null, incomingOwner || null, body.make_model || null, body.category || null, normalizedPlate);
           vehicle = db.prepare('SELECT * FROM vehicles WHERE plate = ?').get(normalizedPlate);
         }
       }
@@ -732,7 +734,7 @@ const server = http.createServer(async (req, res) => {
       const paymentLink = `http://${req.headers.host || 'localhost:3000'}/pay/${sessionId}`;
 
       // Dispatch Entry Welcome + Bill SMS via Gateway to vehicle owner
-      const smsPhone = body.phone || vehicle.phone;
+      const smsPhone = body.phone || body.driverPhone || vehicle.phone;
       const inTimeFormatted = new Date(entryTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       const outTimeFormatted = new Date(expectedExitTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       const welcomeMsg = `[eParkNiyantran] Welcome ${normalizedPlate}! Bay: ${targetSlot.slot_id}. In: ${inTimeFormatted}, Out: ${outTimeFormatted} (${entryBilling.durationFormatted}). Bill #${billNumber}: ₹${totalBillAmount}. Pay: ${paymentLink}`;

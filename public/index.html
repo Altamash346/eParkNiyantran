@@ -2017,19 +2017,30 @@
       <div class="space-y-2 pt-1 no-print">
 
         <!-- Live Message Dispatch to Real Handset -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button type="button" id="btnSendBillWhatsApp" class="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition">
-            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-200"></i>
-            <span>Send on WhatsApp</span>
-          </button>
-
-          <button type="button" id="btnSendBillSmsGateway" class="py-2 px-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/30 flex items-center justify-center space-x-1.5 transition">
-            <i data-lucide="send" class="w-4 h-4 text-sky-200"></i>
-            <span>Send Carrier SMS</span>
-          </button>
+        <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-700/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[11px] font-semibold text-slate-300">Share Digital Bill Slip to Driver Mobile:</label>
+            <span class="text-[10px] text-emerald-400 font-mono font-semibold flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>1-Click Dispatch</span>
+            </span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-2.5 text-xs font-mono text-slate-400 font-bold">+91</span>
+            <input type="tel" id="billModalTargetPhone" maxlength="10" placeholder="Enter 10-digit mobile number" class="saas-input pl-11 text-xs font-mono w-full" value="9823012345">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="btnSendBillWhatsApp" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition">
+              <i data-lucide="message-circle" class="w-4 h-4 text-emerald-200"></i>
+              <span>Send WhatsApp</span>
+            </button>
+            <button type="button" id="btnSendBillSmsGateway" class="py-2.5 px-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/30 flex items-center justify-center space-x-1.5 transition">
+              <i data-lucide="send" class="w-4 h-4 text-sky-200"></i>
+              <span>Send SMS</span>
+            </button>
+          </div>
+          <div id="billSmsFeedbackBox" class="hidden p-2 rounded-lg text-xs font-semibold text-center"></div>
         </div>
-
-        <div id="billSmsFeedbackBox" class="hidden p-2 rounded-lg text-xs font-semibold text-center"></div>
 
         <div class="grid grid-cols-2 gap-2">
           <button type="button" id="btnPrintBillBtn" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 shadow-sm flex items-center justify-center space-x-1.5 transition">

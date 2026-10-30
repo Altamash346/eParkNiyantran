@@ -376,7 +376,10 @@ async function sendSmsViaGateway(sessionId, phone, messageType, messageBody) {
       const data = await res.json();
       if (!data.return) {
         providerStatus = 'FAILED';
-        failureReason = (Array.isArray(data.message) ? data.message.join(', ') : data.message) || `Fast2SMS Code ${data.status_code || 'Err'}`;
+        const rawErr = (Array.isArray(data.message) ? data.message.join(', ') : data.message) || `Fast2SMS Code ${data.status_code || 'Err'}`;
+        failureReason = rawErr.includes('100 INR')
+          ? 'Fast2SMS Account requires ₹100 activation top-up for carrier SMS delivery. Use 1-Click WhatsApp to send instant digital bill!'
+          : rawErr;
       }
     } catch (err) {
       providerStatus = 'FAILED';
