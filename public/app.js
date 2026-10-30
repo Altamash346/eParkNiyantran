@@ -710,6 +710,21 @@ function formatDuration(seconds) {
   return `${s}s`;
 }
 
+function formatPlateDisplay(rawText) {
+  if (!rawText) return '';
+  const norm = String(rawText).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (norm.length >= 8) {
+    const state = norm.substring(0, 2);
+    const rto = norm.substring(2, 4);
+    const rest = norm.substring(4);
+    const num = rest.slice(-4);
+    const series = rest.slice(0, -4);
+    return `${state} ${rto} ${series ? series + ' ' : ''}${num}`.trim();
+  }
+  return norm;
+}
+window.formatPlateDisplay = formatPlateDisplay;
+
 // --- Entry Workflow ---
 function initEntryWorkflow() {
   // Set default preview image
@@ -2139,86 +2154,93 @@ function showBillModal(bill) {
   const modal = document.getElementById('entryBillModal');
   if (!modal) return;
 
-  const billNoEl = document.getElementById('billModalBillNo');
-  if (billNoEl) billNoEl.textContent = bill.bill_number || ('EPN-BILL-' + (bill.session_id || '').slice(-6));
+  try {
+    const billNoEl = document.getElementById('billModalBillNo');
+    if (billNoEl) billNoEl.textContent = bill.bill_number || ('EPN-BILL-' + (bill.session_id || '').slice(-6));
 
-  const dateEl = document.getElementById('billModalDate');
-  if (dateEl) dateEl.textContent = new Date(bill.generated_at || bill.entry_time || Date.now()).toLocaleDateString('en-IN');
+    const dateEl = document.getElementById('billModalDate');
+    if (dateEl) dateEl.textContent = new Date(bill.generated_at || bill.entry_time || Date.now()).toLocaleDateString('en-IN');
 
-  const plateEl = document.getElementById('billModalPlate');
-  if (plateEl) plateEl.textContent = formatPlateDisplay(bill.vehicle_plate);
+    const plateEl = document.getElementById('billModalPlate');
+    if (plateEl) plateEl.textContent = typeof formatPlateDisplay === 'function' ? formatPlateDisplay(bill.vehicle_plate) : bill.vehicle_plate;
 
-  const modelEl = document.getElementById('billModalModel');
-  if (modelEl) modelEl.textContent = bill.make_model || 'Standard Vehicle';
+    const modelEl = document.getElementById('billModalModel');
+    if (modelEl) modelEl.textContent = bill.make_model || 'Standard Vehicle';
 
-  const ownerEl = document.getElementById('billModalOwner');
-  if (ownerEl) ownerEl.textContent = `${bill.owner_name || 'Registered Driver'} (${bill.phone || '+91 9800000000'})`;
+    const ownerEl = document.getElementById('billModalOwner');
+    if (ownerEl) ownerEl.textContent = `${bill.owner_name || 'Registered Driver'} (${bill.phone || '+91 9800000000'})`;
 
-  const slotEl = document.getElementById('billModalSlot');
-  if (slotEl) slotEl.textContent = `${bill.slot_id} (${bill.category === '2W' ? 'Zone A - Two-Wheelers' : 'Zone B - Four-Wheelers'})`;
+    const slotEl = document.getElementById('billModalSlot');
+    if (slotEl) slotEl.textContent = `${bill.slot_id} (${bill.category === '2W' ? 'Zone A - Two-Wheelers' : 'Zone B - Four-Wheelers'})`;
 
-  const inDate = new Date(bill.entry_time);
-  const outDate = new Date(bill.expected_exit_time || bill.out_time || inDate.getTime() + 3600000);
+    const inDate = new Date(bill.entry_time || Date.now());
+    const outDate = new Date(bill.expected_exit_time || bill.out_time || inDate.getTime() + 3600000);
 
-  const inTimeEl = document.getElementById('billModalInTime');
-  if (inTimeEl) inTimeEl.textContent = inDate.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+    const inTimeEl = document.getElementById('billModalInTime');
+    if (inTimeEl) inTimeEl.textContent = inDate.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
 
-  const outTimeEl = document.getElementById('billModalOutTime');
-  if (outTimeEl) outTimeEl.textContent = outDate.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+    const outTimeEl = document.getElementById('billModalOutTime');
+    if (outTimeEl) outTimeEl.textContent = outDate.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
 
-  const durEl = document.getElementById('billModalDuration');
-  if (durEl) durEl.textContent = bill.duration_formatted || formatDuration(bill.duration_seconds || 3600);
+    const durEl = document.getElementById('billModalDuration');
+    if (durEl) durEl.textContent = bill.duration_formatted || (typeof formatDuration === 'function' ? formatDuration(bill.duration_seconds || 3600) : '1 Hour');
 
-  const tierEl = document.getElementById('billModalTier');
-  if (tierEl) tierEl.textContent = bill.tier_label || 'Standard Tariff';
+    const tierEl = document.getElementById('billModalTier');
+    if (tierEl) tierEl.textContent = bill.tier_label || 'Standard Tariff';
 
-  const baseEl = document.getElementById('billModalBaseFee');
-  if (baseEl) baseEl.textContent = `₹${bill.basic_amount !== undefined ? bill.basic_amount : (bill.total_amount || 0)}`;
+    const baseEl = document.getElementById('billModalBaseFee');
+    if (baseEl) baseEl.textContent = `₹${bill.basic_amount !== undefined ? bill.basic_amount : (bill.total_amount || 0)}`;
 
-  const fineEl = document.getElementById('billModalFineFee');
-  if (fineEl) fineEl.textContent = `₹${bill.fine_amount || 0}`;
+    const fineEl = document.getElementById('billModalFineFee');
+    if (fineEl) fineEl.textContent = `₹${bill.fine_amount || 0}`;
 
-  const agencyEl = document.getElementById('billModalAgencyShare');
-  if (agencyEl) agencyEl.textContent = `₹${bill.agency_share !== undefined ? bill.agency_share : Math.round((bill.total_amount || 0) * 0.1)}`;
+    const agencyEl = document.getElementById('billModalAgencyShare');
+    if (agencyEl) agencyEl.textContent = `₹${bill.agency_share !== undefined ? bill.agency_share : Math.round((bill.total_amount || 0) * 0.1)}`;
 
-  const facEl = document.getElementById('billModalFacilityShare');
-  if (facEl) facEl.textContent = `₹${bill.facility_share !== undefined ? bill.facility_share : ((bill.total_amount || 0) - Math.round((bill.total_amount || 0) * 0.1))}`;
+    const facEl = document.getElementById('billModalFacilityShare');
+    if (facEl) facEl.textContent = `₹${bill.facility_share !== undefined ? bill.facility_share : ((bill.total_amount || 0) - Math.round((bill.total_amount || 0) * 0.1))}`;
 
-  const totalEl = document.getElementById('billModalTotalAmount');
-  if (totalEl) totalEl.textContent = `₹${bill.total_amount || 0}`;
+    const totalEl = document.getElementById('billModalTotalAmount');
+    if (totalEl) totalEl.textContent = `₹${bill.total_amount || 0}`;
 
-  const statusBadge = document.getElementById('billModalPaymentStatus');
-  if (statusBadge) {
-    if (bill.is_prepaid) {
-      statusBadge.textContent = 'PRE-PAID (PAID)';
-      statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-    } else {
-      statusBadge.textContent = 'PAYMENT DUE';
-      statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+    const statusBadge = document.getElementById('billModalPaymentStatus');
+    if (statusBadge) {
+      if (bill.is_prepaid) {
+        statusBadge.textContent = 'PRE-PAID (PAID)';
+        statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      } else {
+        statusBadge.textContent = 'PAYMENT DUE';
+        statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+      }
     }
+
+    // Render QR SVG
+    const qrContainer = document.getElementById('billModalQrCode');
+    if (qrContainer && typeof generateMockQrSvg === 'function') {
+      qrContainer.innerHTML = generateMockQrSvg(bill.upi_string || `upi://pay?pa=eparkniyantran@okhdfcbank&pn=eParkNiyantran&am=${bill.total_amount}&tr=${bill.session_id}`);
+    }
+
+    // Pre-fill Driver Mobile for 1-Click Dispatch
+    const targetPhoneInput = document.getElementById('billModalTargetPhone');
+    if (targetPhoneInput) {
+      const rawP = bill.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard?.driverPhone || '';
+      const cleanDigits = rawP.replace(/[^0-9]/g, '').slice(-10);
+      targetPhoneInput.value = cleanDigits || '9823012345';
+    }
+
+    const feedbackBox = document.getElementById('billSmsFeedbackBox');
+    if (feedbackBox) {
+      feedbackBox.className = 'hidden p-2 rounded-lg text-xs font-semibold text-center';
+      feedbackBox.textContent = '';
+    }
+  } catch (err) {
+    console.error('Error populating bill modal:', err);
   }
 
-  // Render QR SVG
-  const qrContainer = document.getElementById('billModalQrCode');
-  if (qrContainer) {
-    qrContainer.innerHTML = generateMockQrSvg(bill.upi_string || `upi://pay?pa=eparkniyantran@okhdfcbank&pn=eParkNiyantran&am=${bill.total_amount}&tr=${bill.session_id}`);
-  }
-
-  // Pre-fill Driver Mobile for 1-Click Dispatch
-  const targetPhoneInput = document.getElementById('billModalTargetPhone');
-  if (targetPhoneInput) {
-    const rawP = bill.phone || document.getElementById('entryDriverPhone')?.value || state.entryWizard?.driverPhone || '';
-    const cleanDigits = rawP.replace(/[^0-9]/g, '').slice(-10);
-    targetPhoneInput.value = cleanDigits || '9823012345';
-  }
-
-  const feedbackBox = document.getElementById('billSmsFeedbackBox');
-  if (feedbackBox) {
-    feedbackBox.className = 'hidden p-2 rounded-lg text-xs font-semibold text-center';
-    feedbackBox.textContent = '';
-  }
-
+  // Force modal display
+  modal.style.display = 'flex';
   modal.classList.remove('hidden');
+  modal.classList.add('open');
   initIcons();
 }
 
@@ -2277,9 +2299,32 @@ function initBillModal() {
   const cashPaidBtn = document.getElementById('btnMarkBillCashPaidBtn');
   const billGrievanceBtn = document.getElementById('btnBillFileGrievance');
 
-  const closeModal = () => modal.classList.add('hidden');
+  const closeModal = () => {
+    modal.classList.add('hidden');
+    modal.classList.remove('open');
+    modal.style.display = 'none';
+  };
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
   if (doneBtn) doneBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Also wire the WhatsApp button on the fallback pass modal if present
+  const receiptWaBtn = document.getElementById('btnReceiptWhatsApp');
+  if (receiptWaBtn) {
+    receiptWaBtn.addEventListener('click', () => {
+      if (currentGeneratedBill) {
+        document.getElementById('btnSendBillWhatsApp')?.click();
+      } else {
+        const plate = document.getElementById('rcptPlate')?.textContent || 'Vehicle';
+        const slot = document.getElementById('rcptSlot')?.textContent || 'Bay';
+        const driverP = (document.getElementById('entryDriverPhone')?.value || '9823012345').replace(/[^0-9]/g, '').slice(-10);
+        const msg = `🚗 *eParkNiyantran - Parking Pass* 🚗\nVehicle: ${plate}\nBay: ${slot}\nEntry Pass Verified ✅`;
+        window.open(`https://api.whatsapp.com/send?phone=91${driverP}&text=${encodeURIComponent(msg)}`, '_blank');
+      }
+    });
+  }
 
   if (billGrievanceBtn) {
     billGrievanceBtn.addEventListener('click', () => {
