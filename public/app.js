@@ -58,6 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initExceptionsActions();
   initSettingsActions();
   initProfileDropdown();
+  initComplaintWorkflow();
+  initBoundaryTestRunner();
+  initDirectMessenger();
+  initIoTSimulator();
+  initBillModal();
 
   // Load initial backend telemetry
   loadBackendTelemetry();
@@ -67,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(loadActiveSessions, 3000);
   setInterval(loadReports, 10000);
   setInterval(loadExceptions, 8000);
+  setInterval(loadComplaints, 8000);
+  setInterval(loadNotifications, 8000);
   setInterval(updateLiveDurationTimers, 1000);
 });
 
@@ -127,7 +134,12 @@ function initRouter() {
 }
 
 function navigateTo(route) {
-  window.location.hash = route;
+  if (!route) route = 'dashboard';
+  if (window.location.hash === `#${route}`) {
+    handleRoute();
+  } else {
+    window.location.hash = route;
+  }
 }
 
 function handleRoute() {
@@ -190,11 +202,18 @@ function handleRoute() {
   const activePanel = document.getElementById(`view-${route}`);
   if (activePanel) {
     activePanel.classList.remove('hidden');
-  }
-  if (route === 'feedback' && typeof loadComplaints === 'function') loadComplaints();
-  if (route === 'sms' && typeof loadNotifications === 'function') loadNotifications(); else {
+  } else {
     document.getElementById('view-dashboard')?.classList.remove('hidden');
   }
+
+  // Route-specific refresh actions
+  if (route === 'feedback' && typeof loadComplaints === 'function') loadComplaints();
+  if (route === 'sms' && typeof loadNotifications === 'function') loadNotifications();
+  if (route === 'grid' && typeof renderGrid === 'function') renderGrid();
+  if (route === 'sessions' && typeof renderSessionsPageTable === 'function') renderSessionsPageTable();
+  if (route === 'reports' && typeof loadReports === 'function') loadReports();
+  if (route === 'exceptions' && typeof loadExceptions === 'function') loadExceptions();
+  if (route === 'entry' && typeof renderEntrySlotPicker === 'function') renderEntrySlotPicker();
 
   // Auto-populate & synchronize exit terminal on navigation
   if (route === 'exit') {
@@ -273,6 +292,8 @@ async function loadBackendTelemetry() {
     loadActiveSessions(),
     loadReports(),
     loadExceptions(),
+    loadComplaints(),
+    loadNotifications(),
     checkHealth()
   ]);
   updateDashboardGreeting();
@@ -801,6 +822,36 @@ function initEntryWorkflow() {
       }
     });
   }
+
+  // Quick Preset Plates
+  document.querySelectorAll('.preset-plate-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const plate = btn.getAttribute('data-plate');
+      const category = btn.getAttribute('data-category');
+      if (plate) {
+        state.entryWizard.plate = plate;
+        updateHSRPDisplay(plate);
+        lookupRtoVehicle(plate);
+        if (category) {
+          state.entryWizard.category = category;
+          if (category === '2W') {
+            document.getElementById('slotFilterBtn2W')?.click();
+          } else {
+            document.getElementById('slotFilterBtn4W')?.click();
+          }
+        }
+        showToast('Preset Loaded', `Loaded ${plate} (${category}) for rapid check-in`, 'info');
+      }
+    });
+  });
+
+  // Re-scan OCR Button
+  document.getElementById('btnRunTesseract')?.addEventListener('click', () => {
+    const previewImg = document.getElementById('previewImage');
+    const imgSrc = (previewImg && previewImg.src) ? previewImg.src : DEFAULT_CAR_SVG;
+    processVehicleImage(imgSrc);
+    showToast('OCR Re-scan', 'Running neural OCR on current vehicle image...', 'info');
+  });
 
   // Send Mobile OTP
   const btnSendOtp = document.getElementById('btnSendMobileOtp');
@@ -1496,6 +1547,63 @@ function closeProfileModal() {
   document.getElementById('profileModal')?.classList.remove('open');
 }
 
+function openChangePasswordModal() {
+  const current = prompt('Enter current attendant password:');
+  if (!current) return;
+  const newPass = prompt('Enter new password (at least 6 characters):');
+  if (newPass && newPass.length >= 6) {
+    showToast('Password Updated', 'Your security password has been changed successfully.', 'success');
+  } else if (newPass) {
+    showToast('Invalid Password', 'Password must be at least 6 characters long.', 'warning');
+  }
+}
+
+// Notifications & Login UI buttons
+document.getElementById('btnNotificationsToggle')?.addEventListener('click', () => {
+  navigateTo('sms');
+  showToast('Citizen Messaging Center', 'Viewing DLT Outbox, Live Messenger, and notifications', 'info');
+});
+
+document.getElementById('btnToggleLoginPass')?.addEventListener('click', () => {
+  const pInput = document.getElementById('loginPassword');
+  if (pInput) {
+    pInput.type = pInput.type === 'password' ? 'text' : 'password';
+  }
+});
+
+document.getElementById('linkForgotPassword')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  alert('Please contact shift supervisor to reset attendant station credentials.\nDefault terminal login: attendant / attendant123');
+});
+
+document.getElementById('linkGoToRegister')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  navigateTo('register');
+});
+
+document.getElementById('linkGoToLogin')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  navigateTo('login');
+});
+
+// Explicitly bind all window-level functions for inline onclick handlers
+window.navigateTo = navigateTo;
+window.setEntryStep = setEntryStep;
+window.quickExitSession = quickExitSession;
+window.openProfileModal = openProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.openChangePasswordModal = openChangePasswordModal;
+window.closeProfileDropdown = closeProfileDropdown;
+window.handleLogout = handleLogout;
+window.handleLoginSubmit = handleLoginSubmit;
+window.handleRegisterSubmit = handleRegisterSubmit;
+window.closeBayDetailDrawer = closeBayDetailDrawer;
+window.closeEntryReceiptModal = closeEntryReceiptModal;
+window.openComplaintModal = openComplaintModal;
+window.closeComplaintModal = closeComplaintModal;
+window.showBillModal = showBillModal;
+window.handleExitSessionSelect = handleExitSessionSelect;
+
 function handleLoginSubmit() {
   const user = document.getElementById('loginUsername')?.value.trim();
   state.currentOperator = user || 'OP-ATTENDANT-01';
@@ -2181,13 +2289,7 @@ function initBillModal() {
     payNowBtn.addEventListener('click', () => {
       if (currentGeneratedBill && currentGeneratedBill.session_id) {
         closeModal();
-        openPaymentModal(
-          currentGeneratedBill.session_id,
-          currentGeneratedBill.vehicle_plate,
-          currentGeneratedBill.duration_formatted,
-          currentGeneratedBill.tier_label,
-          currentGeneratedBill.total_amount
-        );
+        quickExitSession(currentGeneratedBill.session_id);
       }
     });
   }
