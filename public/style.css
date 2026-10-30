@@ -741,6 +741,9 @@ body.light-theme .nav-item.active {
     background: #ffffff !important;
     color: #000000 !important;
   }
+  .no-print {
+    display: none !important;
+  }
 }
 
 /* Simulated Smartphone View */

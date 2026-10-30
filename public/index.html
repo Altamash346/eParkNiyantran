@@ -1885,157 +1885,168 @@
   <script src="app.js?v=2.3.0"></script>
 
 
-  <!-- OFFICIAL PARKING BILL & PRE-PAID MODAL -->
-  <div id="entryBillModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4 overflow-y-auto">
-    <div class="glass-panel rounded-2xl max-w-md w-full p-6 border border-blue-500/40 shadow-2xl space-y-4 text-slate-100 my-8">
+  <!-- OFFICIAL PARKING BILL & PRE-PAID MODAL (LIGHT MODE DEFAULT) -->
+  <div id="entryBillModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div id="entryBillModalCard" class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 border border-slate-200 shadow-2xl space-y-4 text-slate-900 my-8 transition-colors duration-200">
       
       <!-- Modal Header (Controls) -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 no-print">
-        <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 no-print">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-600/20">
             <i data-lucide="receipt" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="font-bold text-white text-base">Parking Bill Generated</h3>
-            <p class="text-xs text-slate-400">eParkNiyantran Entry Tax Invoice / Receipt</p>
+            <h3 class="font-bold text-slate-900 text-base leading-tight">Parking Bill Slip</h3>
+            <p class="text-xs text-slate-500 font-medium">Official Municipal Tax Invoice &amp; Entry Pass</p>
           </div>
         </div>
-        <button id="btnCloseBillModal" class="text-slate-400 hover:text-white transition">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <div class="flex items-center space-x-1.5">
+          <button type="button" id="btnToggleBillSlipTheme" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold flex items-center space-x-1 transition" title="Toggle Light / Dark Slip Theme">
+            <i data-lucide="sun-moon" class="w-3.5 h-3.5"></i>
+            <span class="text-[10px] hidden sm:inline" id="billSlipThemeLabel">Dark View</span>
+          </button>
+          <button type="button" id="btnCloseBillModal" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition" title="Close">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Printable Ticket Area -->
-      <div id="entryBillSlip" class="printable-bill bg-slate-900/90 rounded-xl p-5 border border-slate-700 space-y-3.5 text-xs text-slate-300">
+      <!-- Printable Ticket Area (Authentic Light Mode Paper Receipt) -->
+      <div id="entryBillSlip" class="printable-bill bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm space-y-3.5 text-xs text-slate-800 transition-colors duration-200">
         
         <!-- Header Info -->
-        <div class="text-center pb-3 border-b border-dashed border-slate-700 flex flex-col items-center justify-center">
-          <img src="logo.png" alt="eParkNiyantran Logo" class="w-16 h-16 mb-2 rounded-full object-cover border-2 border-emerald-500/40 shadow-md">
-          <div class="text-lg font-black tracking-tight text-white flex items-center justify-center gap-1">
-            <span class="text-orange-500">ePark</span><span>Niyantran</span>
+        <div class="text-center pb-3 border-b-2 border-dashed border-slate-300 flex flex-col items-center justify-center">
+          <img src="logo.png" alt="eParkNiyantran Logo" class="w-14 h-14 mb-2 rounded-full object-cover border-2 border-emerald-500/40 shadow-sm">
+          <div class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center justify-center gap-1">
+            <span class="text-blue-600">ePark</span><span>Niyantran</span>
           </div>
-          <div class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Smart City Parking &amp; Mobility Network</div>
-          <div class="text-[10px] text-emerald-500 font-mono mt-0.5 font-bold">TAX INVOICE / PARKING BILL SLIP</div>
+          <div class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Pune Municipal Smart Parking Network</div>
+          <div class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[10px] font-mono font-bold mt-1">
+            TAX INVOICE / PARKING BILL SLIP
+          </div>
         </div>
 
         <!-- Bill Number & Timestamp -->
-        <div class="flex justify-between items-center text-[11px] font-mono pb-2 border-b border-slate-800">
+        <div class="flex justify-between items-center text-[11px] font-mono pb-2 border-b border-slate-200">
           <div>
-            <span class="text-slate-400">Bill No:</span>
-            <span id="billModalBillNo" class="font-bold text-white">EPN-BILL-0001</span>
+            <span class="text-slate-500 font-medium">Bill No:</span>
+            <span id="billModalBillNo" class="font-bold text-slate-900">EPN-BILL-0001</span>
           </div>
           <div>
-            <span class="text-slate-400">Date:</span>
-            <span id="billModalDate" class="text-slate-200">28/10/2026</span>
+            <span class="text-slate-500 font-medium">Date:</span>
+            <span id="billModalDate" class="text-slate-700 font-semibold">28/10/2026</span>
           </div>
         </div>
 
         <!-- Vehicle & Bay Details -->
-        <div class="space-y-1.5 pt-1">
+        <div class="space-y-2 pt-1">
           <div class="flex justify-between items-center">
-            <span class="text-slate-400">Vehicle Reg. No:</span>
-            <span id="billModalPlate" class="font-mono font-bold text-base text-white px-2 py-0.5 rounded bg-slate-800 border border-slate-700">MH 12 AB 1234</span>
+            <span class="text-slate-500 font-medium">Vehicle Reg. No:</span>
+            <div class="inline-flex items-center bg-amber-50 border-2 border-slate-800 rounded px-2.5 py-0.5 shadow-xs">
+              <span class="text-[9px] font-bold text-blue-800 mr-1.5 font-sans border-r border-slate-300 pr-1">IND</span>
+              <span id="billModalPlate" class="font-mono font-black text-sm text-slate-950 tracking-wider">MH 12 AB 1234</span>
+            </div>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-slate-400">Vehicle Make / Model:</span>
-            <span id="billModalModel" class="font-medium text-slate-200">Hyundai Creta</span>
+            <span class="text-slate-500 font-medium">Vehicle Make / Model:</span>
+            <span id="billModalModel" class="font-semibold text-slate-800">Hyundai Creta</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-slate-400">Owner &amp; Mobile:</span>
-            <span id="billModalOwner" class="font-medium text-slate-200">Sanket Sondkar (+91 98230 12345)</span>
+            <span class="text-slate-500 font-medium">Citizen / Mobile:</span>
+            <span id="billModalOwner" class="font-semibold text-slate-800">Sanket Sondkar (+91 98230 12345)</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="text-slate-400">Allocated Parking Bay:</span>
-            <span id="billModalSlot" class="font-mono font-bold text-blue-400 px-2 py-0.5 bg-blue-500/10 border border-blue-500/30 rounded">4W-01 (Zone B)</span>
+            <span class="text-slate-500 font-medium">Allocated Parking Bay:</span>
+            <span id="billModalSlot" class="font-mono font-bold text-blue-700 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded">4W-01 (Zone B)</span>
           </div>
         </div>
 
         <!-- In-Time and Out-Time Section -->
-        <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 space-y-1 font-mono text-[11px]">
-          <div class="flex justify-between text-slate-300">
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 font-mono text-[11px]">
+          <div class="flex justify-between text-slate-700">
             <span>In-Time (Entry):</span>
-            <span id="billModalInTime" class="font-bold text-white">28/10/2026 10:00 AM</span>
+            <span id="billModalInTime" class="font-bold text-slate-900">28/10/2026 10:00 AM</span>
           </div>
-          <div class="flex justify-between text-slate-300">
-            <span>Out-Time (Exit):</span>
-            <span id="billModalOutTime" class="font-bold text-white">28/10/2026 12:00 PM</span>
+          <div class="flex justify-between text-slate-700">
+            <span>Out-Time (Scheduled):</span>
+            <span id="billModalOutTime" class="font-bold text-slate-900">28/10/2026 12:00 PM</span>
           </div>
-          <div class="flex justify-between text-slate-300 pt-1 border-t border-slate-800/80">
-            <span>Duration:</span>
-            <span id="billModalDuration" class="font-bold text-amber-300">2 Hours 0 Mins</span>
+          <div class="flex justify-between text-slate-700 pt-1 border-t border-slate-200">
+            <span>Planned Duration:</span>
+            <span id="billModalDuration" class="font-bold text-amber-700 bg-amber-100/70 px-1.5 py-0.5 rounded">2 Hours 0 Mins</span>
           </div>
-          <div class="flex justify-between text-slate-400 text-[10px]">
+          <div class="flex justify-between text-slate-500 text-[10px]">
             <span>Applied Tariff Slab:</span>
-            <span id="billModalTier" class="text-blue-300 font-semibold">Up to 180 minutes</span>
+            <span id="billModalTier" class="text-blue-700 font-semibold">Up to 180 minutes</span>
           </div>
         </div>
 
         <!-- Fare Breakdown -->
-        <div class="space-y-1 pt-1 border-t border-slate-800">
-          <div class="flex justify-between text-slate-400 text-[11px]">
+        <div class="space-y-1.5 pt-1 border-t border-slate-200">
+          <div class="flex justify-between text-slate-600 text-[11px]">
             <span>Base Parking Fee:</span>
-            <span id="billModalBaseFee" class="font-mono text-slate-200">₹500</span>
+            <span id="billModalBaseFee" class="font-mono font-semibold text-slate-900">₹500</span>
           </div>
-          <div class="flex justify-between text-slate-400 text-[11px]">
+          <div class="flex justify-between text-slate-600 text-[11px]">
             <span>Pending Fines / Penalties:</span>
-            <span id="billModalFineFee" class="font-mono text-amber-400">₹0</span>
+            <span id="billModalFineFee" class="font-mono font-semibold text-rose-600">₹0</span>
           </div>
-          <div class="flex justify-between text-slate-400 text-[10px] pl-2 border-l border-slate-700">
-            <span>Agency Revenue (10%):</span>
-            <span id="billModalAgencyShare" class="font-mono text-amber-400">₹50</span>
+          <div class="flex justify-between text-slate-500 text-[10px] pl-2 border-l-2 border-blue-400">
+            <span>Personnel Agency (10%):</span>
+            <span id="billModalAgencyShare" class="font-mono text-blue-700 font-semibold">₹50</span>
           </div>
-          <div class="flex justify-between text-slate-400 text-[10px] pl-2 border-l border-slate-700">
-            <span>Facility Revenue (90%):</span>
-            <span id="billModalFacilityShare" class="font-mono text-emerald-400">₹450</span>
+          <div class="flex justify-between text-slate-500 text-[10px] pl-2 border-l-2 border-emerald-400">
+            <span>Municipal Facility (90%):</span>
+            <span id="billModalFacilityShare" class="font-mono text-emerald-700 font-semibold">₹450</span>
           </div>
-          <div class="flex justify-between items-center pt-2 border-t border-slate-700 text-sm">
-            <span class="font-bold text-white">Total Amount Due:</span>
-            <span id="billModalTotalAmount" class="font-extrabold text-xl text-emerald-400 font-mono">₹500</span>
+          <div class="flex justify-between items-center pt-2.5 border-t-2 border-slate-900 text-sm">
+            <span class="font-black text-slate-900">Total Amount Due:</span>
+            <span id="billModalTotalAmount" class="font-black text-2xl text-slate-950 font-mono">₹500</span>
           </div>
-          <div class="flex justify-between items-center text-[10px]">
-            <span class="text-slate-400">Payment Status:</span>
-            <span id="billModalPaymentStatus" class="px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">PAYMENT DUE</span>
+          <div class="flex justify-between items-center text-[10px] pt-0.5">
+            <span class="text-slate-500 font-medium">Payment Status:</span>
+            <span id="billModalPaymentStatus" class="px-2 py-0.5 rounded font-bold bg-amber-50 text-amber-800 border border-amber-300 text-xs">PAYMENT DUE</span>
           </div>
         </div>
 
         <!-- Fast UPI QR Code -->
-        <div class="flex flex-col items-center justify-center p-2.5 bg-white rounded-lg text-slate-900">
-          <div class="text-[10px] font-bold text-slate-600 mb-1">SCAN WITH ANY UPI APP TO PAY</div>
-          <div id="billModalQrCode" class="p-1 border border-slate-900 rounded">
+        <div class="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900">
+          <div class="text-[10px] font-bold text-slate-700 tracking-wider mb-1.5 uppercase">SCAN WITH ANY UPI APP TO PAY</div>
+          <div id="billModalQrCode" class="p-1.5 bg-white border border-slate-300 rounded-lg shadow-xs">
             <!-- Dynamic QR SVG -->
           </div>
-          <div class="text-[9px] text-slate-500 font-mono mt-0.5">eparkniyantran@okhdfcbank</div>
+          <div class="text-[10px] text-slate-600 font-mono mt-1 font-semibold">eparkniyantran@okhdfcbank</div>
         </div>
 
-        <div class="text-[10px] text-slate-400 text-center italic pt-1 border-t border-dashed border-slate-700">
-          Please retain this bill. Display upon exit for automatic barrier clearance.
+        <div class="text-[10px] text-slate-500 text-center italic pt-1.5 border-t border-dashed border-slate-300">
+          Please retain this official slip. Present QR code at automated barrier upon exit.
         </div>
 
       </div>
 
       <!-- Action Buttons (No-print) -->
-      <div class="space-y-2 pt-1 no-print">
+      <div class="space-y-2.5 pt-1 no-print">
 
         <!-- Live Message Dispatch to Real Handset -->
-        <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-700/80 space-y-2.5">
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
           <div class="flex items-center justify-between">
-            <label class="text-[11px] font-semibold text-slate-300">Share Digital Bill Slip to Driver Mobile:</label>
-            <span class="text-[10px] text-emerald-400 font-mono font-semibold flex items-center space-x-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <label class="text-[11px] font-bold text-slate-700">Share Digital Bill Slip to Driver Mobile:</label>
+            <span class="text-[10px] text-emerald-700 font-mono font-bold flex items-center space-x-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>1-Click Dispatch</span>
             </span>
           </div>
           <div class="relative">
-            <span class="absolute left-3 top-2.5 text-xs font-mono text-slate-400 font-bold">+91</span>
-            <input type="tel" id="billModalTargetPhone" maxlength="10" placeholder="Enter 10-digit mobile number" class="saas-input pl-11 text-xs font-mono w-full" value="9823012345">
+            <span class="absolute left-3 top-2.5 text-xs font-mono text-slate-500 font-bold">+91</span>
+            <input type="tel" id="billModalTargetPhone" maxlength="10" placeholder="Enter 10-digit mobile number" class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl pl-11 pr-3 py-2 text-xs font-mono shadow-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold" value="9823012345">
           </div>
           <div class="grid grid-cols-2 gap-2">
-            <button type="button" id="btnSendBillWhatsApp" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/30 flex items-center justify-center space-x-1.5 transition">
-              <i data-lucide="message-circle" class="w-4 h-4 text-emerald-200"></i>
+            <button type="button" id="btnSendBillWhatsApp" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-1.5 transition">
+              <i data-lucide="message-circle" class="w-4 h-4 text-emerald-100"></i>
               <span>Send WhatsApp</span>
             </button>
-            <button type="button" id="btnSendBillSmsGateway" class="py-2.5 px-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/30 flex items-center justify-center space-x-1.5 transition">
-              <i data-lucide="send" class="w-4 h-4 text-sky-200"></i>
+            <button type="button" id="btnSendBillSmsGateway" class="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center space-x-1.5 transition">
+              <i data-lucide="send" class="w-4 h-4 text-blue-100"></i>
               <span>Send SMS</span>
             </button>
           </div>
@@ -2043,28 +2054,28 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <button type="button" id="btnPrintBillBtn" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 shadow-sm flex items-center justify-center space-x-1.5 transition">
-            <i data-lucide="printer" class="w-4 h-4"></i>
+          <button type="button" id="btnPrintBillBtn" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 shadow-xs flex items-center justify-center space-x-1.5 transition">
+            <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
             <span>Print Bill Slip</span>
           </button>
           
-          <button type="button" id="btnPayBillNowBtn" class="py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center space-x-1.5 transition">
+          <button type="button" id="btnPayBillNowBtn" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-1.5 transition">
             <i data-lucide="credit-card" class="w-4 h-4"></i>
             <span>Pay Online Now</span>
           </button>
         </div>
 
-        <button type="button" id="btnMarkBillCashPaidBtn" class="w-full py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-semibold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition">
-          <i data-lucide="banknote" class="w-4 h-4"></i>
+        <button type="button" id="btnMarkBillCashPaidBtn" class="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition">
+          <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i>
           <span>Collect Cash &amp; Mark Pre-Paid</span>
         </button>
 
-        <button type="button" id="btnDoneBillModal" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl border border-slate-700 transition">
+        <button type="button" id="btnDoneBillModal" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition">
           Close Window
         </button>
 
         <div class="text-center pt-1 no-print">
-          <button type="button" id="btnBillFileGrievance" class="text-[11px] text-amber-400 hover:text-amber-300 underline font-medium inline-flex items-center space-x-1">
+          <button type="button" id="btnBillFileGrievance" class="text-[11px] text-amber-700 hover:text-amber-800 underline font-semibold inline-flex items-center space-x-1">
             <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
             <span>Have an issue with this bill? File a Grievance</span>
           </button>

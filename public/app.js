@@ -2207,10 +2207,10 @@ function showBillModal(bill) {
     if (statusBadge) {
       if (bill.is_prepaid) {
         statusBadge.textContent = 'PRE-PAID (PAID)';
-        statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs';
       } else {
         statusBadge.textContent = 'PAYMENT DUE';
-        statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        statusBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-50 text-amber-800 border border-amber-300 text-xs';
       }
     }
 
@@ -2323,6 +2323,32 @@ function initBillModal() {
         const msg = `🚗 *eParkNiyantran - Parking Pass* 🚗\nVehicle: ${plate}\nBay: ${slot}\nEntry Pass Verified ✅`;
         window.open(`https://api.whatsapp.com/send?phone=91${driverP}&text=${encodeURIComponent(msg)}`, '_blank');
       }
+    });
+  }
+
+  // Bill Slip Light / Dark theme toggle
+  const themeToggleBtn = document.getElementById('btnToggleBillSlipTheme');
+  const themeLabel = document.getElementById('billSlipThemeLabel');
+  const card = document.getElementById('entryBillModalCard');
+  const slip = document.getElementById('entryBillSlip');
+
+  if (themeToggleBtn && card && slip) {
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = card.classList.toggle('dark-bill-slip');
+      if (isDark) {
+        card.classList.remove('bg-white', 'text-slate-900', 'border-slate-200');
+        card.classList.add('bg-slate-900', 'text-slate-100', 'border-slate-700');
+        slip.classList.remove('bg-white', 'text-slate-800', 'border-slate-200');
+        slip.classList.add('bg-slate-950', 'text-slate-200', 'border-slate-800');
+        if (themeLabel) themeLabel.textContent = 'Light View';
+      } else {
+        card.classList.add('bg-white', 'text-slate-900', 'border-slate-200');
+        card.classList.remove('bg-slate-900', 'text-slate-100', 'border-slate-700');
+        slip.classList.add('bg-white', 'text-slate-800', 'border-slate-200');
+        slip.classList.remove('bg-slate-950', 'text-slate-200', 'border-slate-800');
+        if (themeLabel) themeLabel.textContent = 'Dark View';
+      }
+      initIcons();
     });
   }
 
